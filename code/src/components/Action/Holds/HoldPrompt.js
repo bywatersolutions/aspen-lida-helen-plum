@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import _ from 'lodash';
-import { CloseIcon, Modal, ModalBackdrop, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, FormControlLabel, FormControlLabelText, Heading, Select, Button, ButtonGroup, ButtonText, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, Icon, ChevronDownIcon, ButtonSpinner, SelectScrollView, Input, InputField, InputSlot, InputIcon } from '@gluestack-ui/themed';
+import { CloseIcon, Modal, ModalBackdrop, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, FormControlLabel, FormControlLabelText, Heading, Select, Button, ButtonGroup, ButtonText, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, Icon, ChevronDownIcon, ButtonSpinner, SelectScrollView, Input, InputField, InputSlot, InputIcon, Text } from '@gluestack-ui/themed';
 import React from 'react';
 import { EyeOff, Eye } from 'lucide-react-native';
 import { useWindowDimensions } from 'react-native';
@@ -49,6 +49,7 @@ export const HoldPrompt = (props) => {
           cancelHoldItemSelectRef,
           recordSource,
           setIllRequestResponse,
+          alreadyOnHold
      } = props;
 
      const [userHasAlternateLibraryCard, setUserHasAlternateLibraryCard] = React.useState(props.userHasAlternateLibraryCard ?? false);
@@ -426,6 +427,9 @@ export const HoldPrompt = (props) => {
                               </ModalCloseButton>
                          </ModalHeader>
                          <ModalBody mt="$3">
+                              {alreadyOnHold ? (
+                                   <Text>This title is already on hold for you. Are you sure you want to place a duplicate hold?</Text>
+                              ) : null}
                               {promptForHoldNotifications ? (
                                    <HoldNotificationPreferences
                                         user={user}

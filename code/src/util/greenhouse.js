@@ -133,7 +133,7 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
           longitude: PATRON.coords.long,
           release_channel: channel,
      };
-     console.log("Making call with fetch");
+     //console.log("Making call with fetch");
      try {
           const response1 = await fetch(url + '/API/GreenhouseAPI?method=' + method).then((response) => {
                if (response.status === 200) {

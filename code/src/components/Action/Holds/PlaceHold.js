@@ -45,7 +45,7 @@ export const PlaceHold = (props) => {
      const { library } = React.useContext(LibrarySystemContext);
      const { location } = React.useContext(LibraryBranchContext);
      const [loading, setLoading] = React.useState(false);
-     const { updateHolds } = React.useContext(HoldsContext);
+     const { holds, updateHolds } = React.useContext(HoldsContext);
      const { theme } = React.useContext(ThemeContext);
 
      let userPickupLocationId = user.pickupLocationId ?? user.homeLocationId;
@@ -81,6 +81,23 @@ export const PlaceHold = (props) => {
           loadHoldPrompt = true;
      }
 
+     //Check to see if the title is already on hold for the patron
+     //console.log("holdTypeForFormat = " + holdTypeForFormat);
+     //console.log("record = " + record);
+     let alreadyOnHold = false;
+     holds.forEach(holdSection =>  {
+          holdSection.data.forEach(hold => {
+               if ((hold.source + ":" + hold.sourceId) == record) {
+                    alreadyOnHold = true;
+               }
+          });
+     });
+     //console.log("Already on hold = " + alreadyOnHold);
+     if (alreadyOnHold) {
+          loadHoldPrompt = true;
+     }
+
+
      if (loadHoldPrompt) {
           return (
                <HoldPrompt
@@ -111,6 +128,7 @@ export const PlaceHold = (props) => {
                     cancelHoldItemSelectRef={cancelHoldItemSelectRef}
                     holdSelectItemResponse={holdSelectItemResponse}
                     setHoldSelectItemResponse={setHoldSelectItemResponse}
+                    alreadyOnHold={alreadyOnHold}
                />
           );
      } else {
