@@ -1359,3 +1359,138 @@ export async function updateScreenBrightnessStatus(status, url, language = 'en')
           return false;
      }
 }
+
+/** *******************************************************************
+ * 
+ ******************************************************************* **/
+/**
+ *
+ * 
+/**
+ * Return a list of  for a user
+ * @param {string} url
+ * @param {string} language
+ * @param {string} filter
+ * @param {number} page
+ * @param {number} pageSize
+ * 
+ **/
+export async function fetchCampaigns(page = 1, pageSize = 20, filter = 'enrolled', url, language = 'en') {
+     console.log("ca;;ed fetch Campaigns");
+     const postBody = await postData();
+     console.log("Post data: ", postBody);
+
+     const api = create({
+          baseURL: url + '/API',
+          header: getHeaders(true),
+          auth: createAuthTokens(),
+          params: {
+              page: page,
+              pageSize: pageSize,
+              filter: filter,
+              language,
+          },
+     });
+
+     console.log("api config: ", api);
+
+     const response = await api.post('/UserAPI?method=getUserCampaigns', postBody);
+     console.log("api response: ", response);
+     let data = [];
+     let morePages = false;
+
+     if (response.ok) {
+          data = response.data;
+          console.log('data: ', JSON.stringify(data, null, 2));
+          if (data.result?.page_current !== data.result?.page_total) {
+               morePages = true;
+          }
+     } else {
+          console.log("API ERROR: ", response);
+     }
+
+     return {
+         campaigns: data.result?.campaigns ?? [],
+         totalResults: data.result?.totalResults ?? 0,
+         totalPages: data.result?.page_total ??0,
+         hasMore: morePages,
+         filter: data.result?.filter ?? 'enrolled',
+         message: data.data?.message ?? null,
+     }
+
+};
+
+/**
+ * Enroll in campaign
+ * @param {string} campaignId 
+ * @param {string} url 
+ * @param {string} language
+ * @param {string} userId
+ * @returns 
+ */
+export const enrollCampaign = async (campaignId, userId, url, language = 'en') => {
+     const postBody = await postData();
+     const api = create({
+          baseURL: url + '/API',
+          header: getHeaders(true),
+          auth: createAuthTokens(),
+          params: {
+               campaignId,
+               userId,
+               language
+          },
+     });
+
+     const response = await api.post('/UserAPI?method=enrollUserInCampaign', postBody);
+
+     if (response.ok) {
+          const data = response.data;
+          if (data.result && data.result.success) {
+               return true;
+          } else {
+               console.log('Failed to enroll in campaign: ', data.message);
+               return false;
+          }
+     } else {
+          console.log(response);
+          return false;
+     } 
+}
+
+/**
+ *Unenroll from campaign
+ * @param {string} campaignId 
+ * @param {string} url 
+ * @param {string} language
+ * @param {string} userId
+ * 
+ * @returns 
+ */
+export const unenrollCampaign = async (campaignId, userId, url, language = 'en') => {
+     const postBody = await postData();
+     const api = create({
+          baseURL: url + '/API',
+          header: getHeaders(true),
+          auth: createAuthTokens(),
+          params: {
+               campaignId,
+               userId,
+               language
+          },
+     });
+
+     const response = await api.post('/UserAPI?method=unenrollUserFromCampaign', postBody);
+
+     if (response.ok) {
+          const data = response.data;
+          if (data.result && data.result.success) {
+               return true;
+          } else {
+               console.log('Failed to unenroll from campaign: ', data.message);
+               return false;
+          }
+     } else {
+          console.log(response);
+          return false;
+     } 
+}

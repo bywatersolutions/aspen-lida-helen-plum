@@ -617,5 +617,17 @@
   "submit": "Submit",
   "forgot_barcode_error_message": "An unknown error occurred. Please contact the library for assistance.",
   "forgot_barcode_success_message": "Your request completed successfully. Please contact the library if you do not receive a message soon.",
-  "campaigns": "Campaigns"
+  "campaigns": "Campaigns",
+  "active_campaigns": "Active Campaigns",
+  "enrolled_campaigns": "Your Campaigns",
+  "past_campaigns": "Past Campaigns",
+  "upcoming_campaigns": "Upcoming Campaigns",
+  "past_enrolled_campaigns": "Your Past Campaigns",
+  "linked_user_campaigns": "Linked User Campaigns",
+  "enroll": "Enroll",
+  "unenroll": "Unenroll",
+  "opt_in_to_campaign_emails": "Opt in to Emails",
+  "opt_out_of_campaign_emails": "Opt out of Emails",
+  "milestone_progress": "Progress",
+  "milestone_reward": "Reward"
 }

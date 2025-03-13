@@ -11,7 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 import _ from 'lodash';
 import { Badge, Box, Button, Container, Divider, HStack, Icon, Image, Pressable, Text, useColorModeValue, useToken, VStack } from 'native-base';
 import React from 'react';
-import { AuthContext } from '../../components/navigation';
+import navigation, { AuthContext } from '../../components/navigation';
 import { AppState, Platform } from 'react-native';
 import { AppStateStatus } from "react-native";
 
@@ -984,7 +984,7 @@ const Campaigns = () => {
                py="3"
                rounded="md"
                onPress={() => 
-                    navigateStack('AccountsScreenTab', 'MyCampaigns', {
+                    navigateStack('AccountScreenTab', 'MyCampaigns', {
                          libraryUrl: library.baseUrl,
                          hasPendingChanges: false,
                     })
