@@ -99,7 +99,7 @@ export async function checkCachedUrl(url) {
           headers: getHeaders(true),
           auth: createAuthTokens(),
      });
-     const response = await api.post('/UserAPI?method=getValidPickupLocations', postBody);
+     const response = await api.post('/SystemAPI?method=getCatalogStatus', postBody);
      return !!response.ok;
 }
 

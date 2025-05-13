@@ -188,6 +188,7 @@ export const MyCheckout = (props) => {
                                    {getTitle(checkout.title)}
                               </Text>
                          </Box>
+						 {checkout.groupedWorkId ? (
                          <Actionsheet.Item
                               onPress={() => {
                                    openGroupedWork(checkout.groupedWorkId, checkout.title);
@@ -196,6 +197,7 @@ export const MyCheckout = (props) => {
                               startIcon={<Icon as={MaterialIcons} name="search" color="trueGray.400" mr="1" size="6" />}>
                               {getTermFromDictionary(language, 'view_item_details')}
                          </Actionsheet.Item>
+						 ): null}
                          {renewMessage ? (
                               <Actionsheet.Item
                                    maxW="100%"

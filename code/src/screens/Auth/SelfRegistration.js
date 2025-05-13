@@ -68,7 +68,7 @@ export const SelfRegistration = () => {
 											type='text'
 											key={key}
 											name={property}
-											maxLength={maxLength}
+											maxLength={parseInt(maxLength)}
 											accessibilityLabel={description}
 											returnKeyType="next"
 											onChangeText={(value) => {
@@ -91,7 +91,7 @@ export const SelfRegistration = () => {
 											type='password'
 											key={property}
 											name={property}
-											maxLength={maxLength}
+											maxLength={parseInt(maxLength)}
 											accessibilityLabel={description}
 											onChangeText={(value) => {
 												handleInputChange(property, value);
@@ -112,7 +112,7 @@ export const SelfRegistration = () => {
 											type='email'
 											key={property}
 											name={property}
-											maxLength={maxLength}
+											maxLength={parseInt(maxLength)}
 											accessibilityLabel={description}
 											onChangeText={(value) => {
 												handleInputChange(property, value);

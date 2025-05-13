@@ -165,7 +165,7 @@ export const LoginScreen = () => {
      };
 
      const openSelfRegistration = () => {
-          navigate('SelfRegistration', { libraryUrl: 'https://alpha.aspendiscovery.org/' });
+          navigate('SelfRegistration', { libraryUrl: LIBRARY.url });
      };
 
      if (isLoading) {

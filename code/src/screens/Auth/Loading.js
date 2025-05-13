@@ -54,7 +54,9 @@ export const LoadingScreen = () => {
      const [loadingText, setLoadingText] = React.useState('');
      const [loadingTheme, setLoadingTheme] = React.useState(true);
 
-     React.useEffect(() => {
+     const numSteps = 14;
+
+      React.useEffect(() => {
           const unsubscribe = navigation.addListener('focus', async () => {
                // The screen is focused
                console.log('The screen is focused.');
@@ -85,36 +87,62 @@ export const LoadingScreen = () => {
           return unsubscribe;
      }, [navigation]);
 
-     const { status: catalogStatusQueryStatus, data: catalogStatusQuery } = useQuery(['catalog_status', LIBRARY.url], () => getCatalogStatus(LIBRARY.url), {
+     /**
+      * Load information needed to display the interface. These are done sequentially since some calls may rely on previous data.
+      * This is done by controlling when each query is enabled.
+      */
+
+     /**
+      * First check to see if the catalog is online and check to see if offline mode is active.
+      */
+     const { isSuccess: catalogStatusSuccess, status: catalogStatusQueryStatus, data: catalogStatusQuery } = useQuery(['catalog_status', LIBRARY.url], () => getCatalogStatus(LIBRARY.url), {
           enabled: !!LIBRARY.url && !loadingTheme,
           onSuccess: (data) => {
                updateCatalogStatus(data);
+               if (_.isUndefined(LIBRARY.appSettings.loadingMessageType) || LIBRARY.appSettings.loadingMessageType == 0) {
+                    setLoadingText(getTermFromDictionary(language ?? 'en', 'loading_1'));
+               }else if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Translations');
+               }else if (LIBRARY.appSettings.loadingMessageType == 2) {
+                    setLoadingText(LIBRARY.appSettings.loadingMessage);
+               }
+               setProgress(progress + (100 / numSteps));
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: translationQueryStatus, data: translationQuery } = useQuery(['active_language', PATRON.language, LIBRARY.url], () => getTranslatedTermsForUserPreferredLanguage(PATRON.language ?? 'en', LIBRARY.url), {
-          enabled: !!LIBRARY.url && !!catalogStatusQuery,
+     /**
+       * Preload parameterized translations for use on holds and checkouts pages. This does not halt loading LiDA.
+       */
+     const { isSuccess: translationQuerySuccess, status: translationQueryStatus, data: translationQuery } = useQuery(['active_language', PATRON.language, LIBRARY.url], () => getTranslatedTermsForUserPreferredLanguage(PATRON.language ?? 'en', LIBRARY.url), {
+          enabled: !!LIBRARY.url && catalogStatusSuccess,
           onSuccess: (data) => {
-               setProgress(10);
+               setProgress(progress + (100 / numSteps));
                updateDictionary(translationsLibrary);
-               setLoadingText(getTermFromDictionary(PATRON.language ?? 'en', 'loading_1'));
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Languages');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: languagesQueryStatus, data: languagesQuery } = useQuery(['languages', LIBRARY.url], () => getLibraryLanguages(LIBRARY.url), {
-          enabled: !!translationQuery,
+     const { isSuccess: languagesQuerySuccess, status: languagesQueryStatus, data: languagesQuery } = useQuery(['languages', LIBRARY.url], () => getLibraryLanguages(LIBRARY.url), {
+          enabled: hasError === false && catalogStatusSuccess,
           onSuccess: (data) => {
+               setProgress(progress + (100 / numSteps));
                updateLanguages(data);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Library Information');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
-
-     /*const { status: translationsQueryStatus, data: translationsQuery } = useQuery(['translations', LIBRARY.url], () => getTranslatedTermsForAllLanguages(languagesQuery, LIBRARY.url), {
-	 enabled: !!languagesQuery,
-	 onSuccess: (data) => {
-	 updateDictionary(translationsLibrary);
-	 setLoadingText(getTermFromDictionary(language ?? 'en', 'loading_1'));
-	 },
-	 });*/
 
      React.useEffect(() => {
           const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -135,16 +163,22 @@ export const LoadingScreen = () => {
           };
      }, []);
 
-     const { status: librarySystemQueryStatus, data: librarySystemQuery } = useQuery(['library_system', LIBRARY.url], () => getLibraryInfo(LIBRARY.url), {
-          enabled: !!languagesQuery,
+     const { isSuccess: librarySystemQuerySuccess, status: librarySystemQueryStatus, data: librarySystemQuery } = useQuery(['library_system', LIBRARY.url], () => getLibraryInfo(LIBRARY.url), {
+          enabled: hasError === false && languagesQuerySuccess,
           onSuccess: (data) => {
-               setProgress(20);
+               setProgress(progress + (100 / numSteps));
                updateLibrary(data);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading User Information');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: userQueryStatus, data: userQuery } = useQuery(['user', LIBRARY.url, 'en'], () => refreshProfile(LIBRARY.url), {
-          enabled: !!librarySystemQuery,
+     const { isSuccess: userQuerySuccess, status: userQueryStatus, data: userQuery } = useQuery(['user', LIBRARY.url, 'en'], () => refreshProfile(LIBRARY.url), {
+          enabled: hasError === false && librarySystemQuerySuccess,
           onSuccess: (data) => {
                console.log(data);
                if (_.isUndefined(data) || _.isEmpty(data)) {
@@ -153,53 +187,88 @@ export const LoadingScreen = () => {
                     if (data.success === false || data.success === 'false') {
                          setHasError(true);
                     } else {
-                         setProgress(30);
+                         setProgress(progress + (100 / numSteps));
                          updateUser(data);
                          updateLanguage(data.interfaceLanguage ?? 'en');
                          updateLanguageDisplayName(getLanguageDisplayName(data.interfaceLanguage ?? 'en', languages));
                          PATRON.language = data.interfaceLanguage ?? 'en';
-                         setLoadingText(getTermFromDictionary(language ?? 'en', 'loading_2'));
                     }
                }
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Menu');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: libraryLinksQueryStatus, data: libraryLinksQuery } = useQuery(['library_links', LIBRARY.url], () => getLibraryLinks(LIBRARY.url), {
-          enabled: hasError === false && !!userQueryStatus,
+     const { isSuccess: libraryLinksQuerySuccess, status: libraryLinksQueryStatus, data: libraryLinksQuery } = useQuery(['library_links', LIBRARY.url], () => getLibraryLinks(LIBRARY.url), {
+          enabled: hasError === false && userQuerySuccess,
           onSuccess: (data) => {
-               setProgress(50);
+               setProgress(progress + (100 / numSteps));
                updateMenu(data);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Browse Categories');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: browseCategoryQueryStatus, data: browseCategoryQuery } = useQuery(['browse_categories', LIBRARY.url, 'en', false], () => reloadBrowseCategories(5, LIBRARY.url), {
-          enabled: hasError === false && !!libraryLinksQuery && !!userQueryStatus,
+     const { isSuccess: browseCategoryQuerySuccess, status: browseCategoryQueryStatus, data: browseCategoryQuery } = useQuery(['browse_categories', LIBRARY.url, 'en', false], () => reloadBrowseCategories(5, LIBRARY.url), {
+          enabled: hasError === false && libraryLinksQuerySuccess,
           onSuccess: (data) => {
-               setProgress(60);
+               setProgress(progress + (100 / numSteps));
                updateBrowseCategories(data);
                updateMaxCategories(5);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Browse Category List');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
-     const { status: browseCategoryListQueryStatus, data: browseCategoryListQuery } = useQuery(['browse_categories_list', LIBRARY.url, 'en'], () => getBrowseCategoryListForUser(LIBRARY.url), {
-          enabled: hasError === false && !!browseCategoryQuery && !!userQueryStatus,
+
+     const { isSuccess: browseCategoryListQuerySuccess, status: browseCategoryListQueryStatus, data: browseCategoryListQuery } = useQuery(['browse_categories_list', LIBRARY.url, 'en'], () => getBrowseCategoryListForUser(LIBRARY.url), {
+          enabled: hasError === false && browseCategoryQuerySuccess,
           onSuccess: (data) => {
-               setProgress(70);
+               setProgress(progress + (100 / numSteps));
+               if (_.isUndefined(LIBRARY.appSettings.loadingMessageType) || LIBRARY.appSettings.loadingMessageType == 0) {
+                    setLoadingText(getTermFromDictionary(language ?? 'en', 'loading_2'));
+               }else if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Branch Information');
+               }
                updateBrowseCategoryList(data);
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: libraryBranchQueryStatus, data: libraryBranchQuery } = useQuery(['library_location', LIBRARY.url, 'en'], () => getLocationInfo(LIBRARY.url), {
-          enabled: hasError === false && !!browseCategoryListQuery && !!userQueryStatus,
+     const { isSuccess: libraryBranchQuerySuccess, status: libraryBranchQueryStatus, data: libraryBranchQuery } = useQuery(['library_location', LIBRARY.url, 'en'], () => getLocationInfo(LIBRARY.url), {
+          enabled: hasError === false && browseCategoryListQuerySuccess,
           onSuccess: (data) => {
-               setProgress(80);
+               setProgress(progress + (100 / numSteps));
                updateLocation(data);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Self Check Information');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: selfCheckQueryStatus, data: selfCheckQuery } = useQuery(['self_check_settings', LIBRARY.url, 'en'], () => getSelfCheckSettings(LIBRARY.url), {
-          enabled: hasError === false && !!userQuery && !!libraryBranchQuery && !!userQueryStatus,
+     const { isSuccess: selfCheckQuerySuccess, status: selfCheckQueryStatus, data: selfCheckQuery } = useQuery(['self_check_settings', LIBRARY.url, 'en'], () => getSelfCheckSettings(LIBRARY.url), {
+          enabled: hasError === false && libraryBranchQuerySuccess,
           onSuccess: (data) => {
-               setProgress(85);
+               setProgress(progress + (100 / numSteps));
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Linked Account');
+               }
                if (data.success) {
                     updateEnableSelfCheck(data.settings?.isEnabled ?? false);
                     updateSelfCheckSettings(data.settings);
@@ -207,49 +276,69 @@ export const LoadingScreen = () => {
                     updateEnableSelfCheck(false);
                }
           },
+          onError: () => {
+               setHasError(true);
+          }
+
      });
 
-     const { status: linkedAccountQueryStatus, data: linkedAccountQuery } = useQuery(['linked_accounts', user ?? [], cards ?? [], LIBRARY.url, 'en'], () => getLinkedAccounts(user ?? [], cards ?? [], library.barcodeStyle, LIBRARY.url, 'en'), {
-          enabled: hasError === false && !!selfCheckQuery,
+     const { isSuccess: linkedAccountQuerySuccess, status: linkedAccountQueryStatus, data: linkedAccountQuery } = useQuery(['linked_accounts', user ?? [], cards ?? [], LIBRARY.url, 'en'], () => getLinkedAccounts(user ?? [], cards ?? [], library.barcodeStyle, LIBRARY.url, 'en'), {
+          enabled: hasError === false && selfCheckQuerySuccess,
           onSuccess: (data) => {
+               setProgress(progress + (100 / numSteps));
                updateLinkedAccounts(data.accounts);
-               setIsReloading(false);
-          },
-     });
-
-     const { status: libraryCardsQueryStatus, data: libraryCardsQuery } = useQuery(['library_cards', user ?? [], cards ?? [], LIBRARY.url, 'en'], () => getLinkedAccounts(user ?? [], cards ?? [], library.barcodeStyle, LIBRARY.url, 'en'), {
-          enabled: hasError === false && !!linkedAccountQuery,
-          onSuccess: (data) => {
-               setProgress(90);
                updateLibraryCards(data.cards);
                setIsReloading(false);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading System Message Information');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: systemMessagesQueryStatus, data: systemMessagesQuery } = useQuery(['system_messages', LIBRARY.url], () => getSystemMessages(library.libraryId, location.locationId, LIBRARY.url), {
-          enabled: hasError === false && !!libraryCardsQuery,
+     const { isSuccess: systemMessagesQuerySuccess, status: systemMessagesQueryStatus, data: systemMessagesQuery } = useQuery(['system_messages', LIBRARY.url], () => getSystemMessages(library.libraryId, location.locationId, LIBRARY.url), {
+          enabled: hasError === false && linkedAccountQuerySuccess,
           onSuccess: (data) => {
+               setProgress(progress + (100 / numSteps));
                updateSystemMessages(data);
                setIsReloading(false);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Application Preferences');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: appPreferencesQueryStatus, data: appPreferencesQuery } = useQuery(['app_preferences', LIBRARY.url], () => getAppPreferencesForUser(LIBRARY.url, 'en'), {
-          enabled: hasError === false && !!systemMessagesQuery,
+     const { isSuccess: appPreferencesQuerySuccess, status: appPreferencesQueryStatus, data: appPreferencesQuery } = useQuery(['app_preferences', LIBRARY.url], () => getAppPreferencesForUser(LIBRARY.url, 'en'), {
+          enabled: hasError === false && systemMessagesQuerySuccess,
           onSuccess: (data) => {
                updateAppPreferences(data);
-               setProgress(100);
+               setProgress(progress + (100 / numSteps));
                setIsReloading(false);
+               if (LIBRARY.appSettings.loadingMessageType == 1) {
+                    setLoadingText('Loading Notification History');
+               }
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
-     const { status: notificationHistoryQueryStatus, data: notificationHistoryQuery } = useQuery(['notification_history'], () => fetchNotificationHistory(1, 20, true, library.baseUrl, 'en'), {
-          enabled: hasError === false && !!appPreferencesQuery,
+     const { isSuccess: notificationHistoryQuerySuccess, status: notificationHistoryQueryStatus, data: notificationHistoryQuery } = useQuery(['notification_history'], () => fetchNotificationHistory(1, 20, true, library.baseUrl, 'en'), {
+          enabled: hasError === false && appPreferencesQuerySuccess,
           onSuccess: (data) => {
+               setProgress(progress + (100 / numSteps));
                updateNotificationHistory(data);
                updateInbox(data?.inbox ?? []);
                setIsReloading(false);
           },
+          onError: () => {
+               setHasError(true);
+          }
      });
 
      if (hasError) {
@@ -270,7 +359,6 @@ export const LoadingScreen = () => {
           languagesQueryStatus === 'loading' ||
           libraryBranchQueryStatus === 'loading' ||
           linkedAccountQueryStatus === 'loading' ||
-          libraryCardsQueryStatus === 'loading' ||
           systemMessagesQueryStatus === 'loading' ||
           appPreferencesQueryStatus === 'loading' ||
           notificationHistoryQueryStatus === 'loading'
@@ -298,7 +386,6 @@ export const LoadingScreen = () => {
           languagesQueryStatus === 'success' ||
           libraryBranchQueryStatus === 'success' ||
           linkedAccountQueryStatus === 'success' ||
-          libraryCardsQueryStatus === 'success' ||
           systemMessagesQueryStatus === 'success' ||
           appPreferencesQueryStatus === 'success' ||
           notificationHistoryQueryStatus === 'success'

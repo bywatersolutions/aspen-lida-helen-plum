@@ -50,6 +50,13 @@ export async function getLibraryInfo(url = null, id = null) {
      if (id) {
           libraryId = id;
      }
+	 if (typeof(libraryId) == "string")
+	 {
+		//strip quotes from libraryId
+		libraryId = libraryId.replace(/['"]+/g, '');
+		//then convert it into an int 
+		libraryId = parseInt(libraryId);
+	 }
 
      const discovery = create({
           baseURL: apiUrl + '/API',
