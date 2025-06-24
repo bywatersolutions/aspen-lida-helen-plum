@@ -33,6 +33,7 @@ export const CheckOut = (props) => {
      if (_.size(accounts) > 0) {
           return (
                <HoldPrompt
+                    language={language}
                     id={record}
                     title={title}
                     action={type}
@@ -171,9 +172,12 @@ export const CheckOut = (props) => {
                                              onPress={async () => {
                                                   setLoading(true);
                                                   await updateCard();
-                                                  await completeAction(record, type, user.id, null, null, null, null, library.baseUrl).then(async (eContentResponse) => {
-                                                       setResponse(eContentResponse);
-                                                       if (eContentResponse.success) {
+                                                  await completeAction(record, type, user.id, null, null, null, null, library.baseUrl).then(async (response) => {
+                                                       if (__DEV__) {
+                                                            console.log("Completed Action - Checkout with alternate card");
+                                                       }
+                                                       setResponse(response);
+                                                       if (response.success) {
                                                             queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
                                                             queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
                                                        }
@@ -202,6 +206,9 @@ export const CheckOut = (props) => {
                               setLoading(true);
                               await completeAction(record, type, user.id, null, null, null, null, library.baseUrl).then(async (eContentResponse) => {
                                    setResponse(eContentResponse);
+                                   if (__DEV__) {
+                                        console.log("Completed Action - Checkout");
+                                   }
                                    if (eContentResponse.success) {
                                         queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
                                         queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });

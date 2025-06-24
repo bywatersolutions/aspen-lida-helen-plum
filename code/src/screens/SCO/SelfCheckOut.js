@@ -1,6 +1,6 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { CheckoutsContext, LanguageContext, LibraryBranchContext, LibrarySystemContext, UserContext } from '../../context/initialContext';
-import { Box, Button, Text, Heading, Center, HStack, Icon, FlatList, AlertDialog } from 'native-base';
+import { Box, Button, Text, Heading, Center, HStack, Icon, FlatList, AlertDialog, FormControl, Input, Modal } from 'native-base';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { getTermFromDictionary } from '../../translations/TranslationService';
 import { navigateStack } from '../../helpers/RootNavigator';
@@ -12,6 +12,7 @@ import { confirmHold } from '../../util/api/circulation';
 import { getPatronCheckedOutItems, refreshProfile } from '../../util/api/user';
 import { Platform } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {ButtonGroup} from "@gluestack-ui/themed";
 
 export const SelfCheckOut = () => {
      const queryClient = useQueryClient();
@@ -21,7 +22,9 @@ export const SelfCheckOut = () => {
      const { language } = React.useContext(LanguageContext);
      const { user, cards, updateUser } = React.useContext(UserContext);
      const { checkouts, updateCheckouts } = React.useContext(CheckoutsContext);
-     const [items, setItems] = React.useState([]);
+     const passedItems = useRoute().params?.items ?? [];
+     const [items, setItems] = React.useState(passedItems);
+     const { selfCheckSettings } = React.useContext(LibraryBranchContext);
 
      let startNew = useRoute().params?.startNew ?? false;
      let activeAccount = useRoute().params?.activeAccount ?? user;
@@ -29,6 +32,18 @@ export const SelfCheckOut = () => {
      let barcode = useRoute().params?.barcode ?? null;
      let barcodeType = useRoute().params?.type ?? null;
      let sessionCheckouts = [];
+
+     let keyboardType = 0;
+     if (selfCheckSettings.barcodeEntryKeyboardType) {
+          keyboardType = selfCheckSettings.barcodeEntryKeyboardType;
+     }
+     const [showModal, setShowModal] = useState(false);
+     const toggle = () => {
+          barcode = null;
+          setNewBarcode(null);
+          setShowModal(!showModal);
+     };
+     const [newBarcode, setNewBarcode] = React.useState(null);
 
      let checkoutResult = null;
      let checkoutHasError = false;
@@ -106,6 +121,7 @@ export const SelfCheckOut = () => {
                                              },
                                         });*/
                                    }
+                                   barcode = null;
                                    setIsProcessingCheckout(false);
                               });
                          }
@@ -177,9 +193,58 @@ export const SelfCheckOut = () => {
                               {getTermFromDictionary(language, 'checking_out_as')} {activeAccount.displayName}
                          </Text>
                     ) : null}
-                    <Button leftIcon={<Icon as={<Ionicons name="barcode-outline" />} size={6} mr="1" />} colorScheme="secondary" onPress={() => openScanner()}>
-                         {getTermFromDictionary(language, 'add_new_item')}
-                    </Button>
+                    {keyboardType === 0 ? (
+                        <Button leftIcon={<Icon as={<Ionicons name="barcode-outline" />} size={6} mr="1" />} colorScheme="secondary" onPress={() => openScanner()}>
+                             {getTermFromDictionary(language, 'add_new_item')}
+                        </Button>
+                    ) : (
+                        <Center>
+                             <FormControl>
+                                  <Center>
+                                       <FormControl.Label>{getTermFromDictionary(language, 'add_new_item')}</FormControl.Label>
+                                       <ButtonGroup sp="md">
+                                             <Button leftIcon={<Icon as={<Ionicons name="barcode-outline" />} size={6} mr="3" />} colorScheme="secondary" onPress={() => openScanner()}>
+                                                  {getTermFromDictionary(language, 'scan')}
+                                             </Button>
+                                             <Button leftIcon={<Icon as={<Ionicons name="keypad-outline" />} size={6} mr="3" />} colorScheme="secondary" onPress={toggle}>
+                                                  {getTermFromDictionary(language, 'type')}
+                                             </Button>
+                                       </ButtonGroup>
+                                  </Center>
+                             </FormControl>
+                             <Modal isOpen={showModal} onClose={toggle} size="md" avoidKeyboard>
+                                  <Modal.Content maxWidth="90%" bg="white" _dark={{ bg: 'coolGray.800' }}>
+                                       <Modal.CloseButton />
+                                       <Modal.Header>
+                                            <Heading size="md">{getTermFromDictionary(language, 'add_new_item')}</Heading>
+                                       </Modal.Header>
+                                       <Modal.Body>
+                                            <FormControl pb={5}>
+                                                 <Input keyboardType={keyboardType === 1 ? 'number-pad' : 'default'} variant="outline" autoCapitalize="none" placeholder={getTermFromDictionary(language, 'enter_barcode')} size="lg" defaultValue={newBarcode} onChangeText={text => setNewBarcode(text)} />
+                                            </FormControl>
+                                       </Modal.Body>
+                                       <Modal.Footer>
+                                            <Button.Group>
+                                                 <Button variant="outline" onPress={toggle}>
+                                                      {getTermFromDictionary(language, 'close_window')}
+                                                 </Button>
+                                                 <Button onPress={() => {
+                                                      navigation.replace('SelfCheckOut', {
+                                                           barcode: newBarcode,
+                                                           type: null,
+                                                           activeAccount,
+                                                           startNew: false,
+                                                           items,
+                                                      });
+                                                 }}>
+                                                      {getTermFromDictionary(language, 'add_new_item')}
+                                                 </Button>
+                                            </Button.Group>
+                                       </Modal.Footer>
+                                  </Modal.Content>
+                             </Modal>
+                        </Center>
+                    )}
                </Center>
                <Heading fontSize="md" pb={2}>
                     {getTermFromDictionary(language, 'checked_out_during_session')}

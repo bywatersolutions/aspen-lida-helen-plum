@@ -354,6 +354,9 @@ export const HoldPrompt = (props) => {
                                              setLoading(true);
                                              await updateCard();
                                              await completeAction(id, action, activeAccount, '', '', location, sublocation, library.baseUrl, volume, holdType, holdNotificationPreferences, item).then(async (result) => {
+                                                  if (__DEV__) {
+                                                       console.log("Completed Action - Hold Prompt footer");
+                                                  }
                                                   setResponse(result);
                                                   if (result) {
                                                        if (result.success === true || result.success === 'true') {
@@ -551,19 +554,33 @@ export const HoldPrompt = (props) => {
                                                   setLoading(true);
                                                   await completeAction(id, action, activeAccount, '', '', location, sublocation, library.baseUrl, volume, holdType, holdNotificationPreferences, item).then(async (result) => {
                                                        setResponse(result);
+                                                       if (__DEV__) {
+                                                            console.log("Completed Action Hold Prompt Alternate Library Card");
+                                                       }
                                                        if (result) {
                                                             if (result.success === true || result.success === 'true') {
-                                                                 queryClient.invalidateQueries({ queryKey: ['holds', activeAccount, library.baseUrl, language] });
+                                                                 if (__DEV__) {
+                                                                      console.log("Placing succeeded, invalidating queries for user " + user.id + " baseUrl " + library.baseUrl + " language " + language);
+                                                                      console.log(result);
+                                                                 }
+                                                                 queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language] });
+                                                                 queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
                                                                  queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
 
                                                                  const timeoutId = setTimeout(() => {
                                                                       // Also refresh in 45 seconds for Sierra since hold can take a minute to show up on the account
                                                                       queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language] });
+                                                                      queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
                                                                       queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
                                                                  }, 45 * 1000);
+                                                                  if (__DEV__) {
+                                                                      console.log("Query invalidation complete");
+                                                                  }
                                                             }else{
-                                                                 console.log("Placing hold failed");
-                                                                 console.log(result);
+                                                                 if (__DEV__) {
+                                                                      console.log("Placing hold failed");
+                                                                      console.log(result);
+                                                                 }
                                                             }
 
                                                             if (result?.confirmationNeeded && result.confirmationNeeded === true) {
@@ -613,6 +630,10 @@ export const HoldPrompt = (props) => {
                                                                  console.log(response);
                                                             } {
                                                                  setResponseIsOpen(true);
+                                                            }
+                                                       }else{
+                                                            if (__DEV__) {
+                                                                 console.log("Did not get a good reasult");
                                                             }
                                                        }
                                                   });

@@ -11,7 +11,7 @@ import { loadingSpinner } from '../../../components/loadingSpinner';
 import { DisplayMessage, DisplaySystemMessage } from '../../../components/Notifications';
 import { HoldsContext, LanguageContext, LibrarySystemContext, SystemMessagesContext, ThemeContext, UserContext } from '../../../context/initialContext';
 import { getTermFromDictionary, getTranslationsWithValues } from '../../../translations/TranslationService';
-import {getPatronCheckedOutItems, getPatronHolds, setSortPreferences} from '../../../util/api/user';
+import {getPatronCheckedOutItems, getPatronHolds, sortHolds, setSortPreferences} from '../../../util/api/user';
 import { getPickupLocations } from '../../../util/loadLibrary';
 import { ManageAllHolds, ManageSelectedHolds, MyHold } from './MyHold';
 
@@ -19,9 +19,9 @@ export const MyHolds = () => {
      const isFetchingHolds = useIsFetching({ queryKey: ['holds'] });
      const queryClient = useQueryClient();
      const navigation = useNavigation();
-     const { user, updateUser } = React.useContext(UserContext);
+     const { user, updateUser, userHoldPendingSortMethod, updateUserHoldPendingSortMethod, userHoldReadySortMethod, updateUserHoldReadySortMethod} = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
-     const { holds, updateHolds, pendingSortMethod, readySortMethod, updatePendingSortMethod, updateReadySortMethod } = React.useContext(HoldsContext);
+     const { holds, updateHolds } = React.useContext(HoldsContext);
      const { language } = React.useContext(LanguageContext);
      const [holdSource, setHoldSource] = React.useState('all');
      const [isLoading, setLoading] = React.useState(false);
@@ -52,29 +52,31 @@ export const MyHolds = () => {
           });
      }, [navigation]);
 
-     useQuery(['holds', user.id, library.baseUrl, language, readySortMethod, pendingSortMethod, 'all'], () => getPatronHolds(readySortMethod, pendingSortMethod, 'all', library.baseUrl, true, language), {
+     useQuery(['holds', user.id, library.baseUrl, language, userHoldReadySortMethod, userHoldPendingSortMethod, 'all'], () => getPatronHolds(userHoldReadySortMethod, userHoldPendingSortMethod, 'all', library.baseUrl, true, language), {
+          placeHolderData: holds,
           onSuccess: (data) => {
-               updateHolds(data);
+               const sortedHolds = sortHolds(data, userHoldPendingSortMethod, userHoldReadySortMethod);
+               updateHolds(sortedHolds);
           },
           onSettle: (data) => setLoading(false),
      });
 
      const toggleReadySort = async (value) => {
-          updateReadySortMethod(value);
-          const sortedHolds = sortHolds(holds, pendingSortMethod, value);
+          updateUserHoldReadySortMethod(value);
+          const sortedHolds = sortHolds(holds, userHoldPendingSortMethod, value);
           setLoading(true);
-          queryClient.setQueryData(['holds', library.baseUrl, language, readySortMethod, pendingSortMethod, 'all'], sortedHolds);
+          queryClient.setQueryData(['holds', library.baseUrl, language, userHoldReadySortMethod, userHoldPendingSortMethod, 'all'], sortedHolds);
           setLoading(false);
           await setSortPreferences('availableHoldSort', value, language, library.baseUrl)
           updateHolds(sortedHolds);
      };
 
      const togglePendingSort = async (value) => {
-          updatePendingSortMethod(value);
-          const sortedHolds = sortHolds(holds, value, readySortMethod);
+          updateUserHoldPendingSortMethod(value);
+          const sortedHolds = sortHolds(holds, value, userHoldReadySortMethod);
           //console.log(sortedHolds[1]);
           setLoading(true);
-          queryClient.setQueryData(['holds', library.baseUrl, language, readySortMethod, pendingSortMethod, 'all'], sortedHolds);
+          queryClient.setQueryData(['holds', library.baseUrl, language, userHoldReadySortMethod, userHoldPendingSortMethod, 'all'], sortedHolds);
           setLoading(false);
           await setSortPreferences('unavailableHoldSort', value, language, library.baseUrl);
           updateHolds(sortedHolds);
@@ -97,8 +99,6 @@ export const MyHolds = () => {
                } else {
                     navigation.setOptions({ title: getTermFromDictionary(language, 'titles_on_hold_for_all') });
                }
-               //await queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language, readySortMethod, pendingSortMethod, value] });
-               //await queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language, readySortMethod, pendingSortMethod, holdSource] });
           }
          // setLoading(false);
      };
@@ -210,7 +210,7 @@ export const MyHolds = () => {
      const resetGroup = async () => {
           setLoading(true);
           clearGroupValue();
-          queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language, readySortMethod, pendingSortMethod, 'all'] });
+          queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language, userHoldReadySortMethod, userHoldPendingSortMethod, 'all'] });
           queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
           setLoading(false);
      };
@@ -241,7 +241,7 @@ export const MyHolds = () => {
 
      const refreshHolds = async () => {
           setLoading(true);
-          queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language, readySortMethod, pendingSortMethod, 'all'] });
+          queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language, userHoldReadySortMethod, userHoldPendingSortMethod, 'all'] });
           queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
           setLoading(false);
      };
@@ -253,21 +253,21 @@ export const MyHolds = () => {
           }
 
           let pendingSortLength = 8 * sortBy.title.length + 80;
-          if (pendingSortMethod === 'author') {
+          if (userHoldPendingSortMethod === 'author') {
                pendingSortLength = 8 * sortBy.author.length + 80;
-          } else if (pendingSortMethod === 'format') {
+          } else if (userHoldPendingSortMethod === 'format') {
                pendingSortLength = 8 * sortBy.format.length + 80;
-          } else if (pendingSortMethod === 'status') {
+          } else if (userHoldPendingSortMethod === 'status') {
                pendingSortLength = 8 * sortBy.status.length + 80;
-          } else if (pendingSortMethod === 'placed') {
+          } else if (userHoldPendingSortMethod === 'placed') {
                pendingSortLength = 8 * sortBy.date_placed.length + 80;
-          } else if (pendingSortMethod === 'position') {
+          } else if (userHoldPendingSortMethod === 'position') {
                pendingSortLength = 8 * sortBy.position.length + 80;
-          } else if (pendingSortMethod === 'location') {
+          } else if (userHoldPendingSortMethod === 'location') {
                pendingSortLength = 8 * sortBy.pickup_location.length + 80;
-          } else if (pendingSortMethod === 'libraryAccount') {
+          } else if (userHoldPendingSortMethod === 'libraryAccount') {
                pendingSortLength = 8 * sortBy.library_account.length + 80;
-          } else if (pendingSortMethod === 'sortTitle') {
+          } else if (userHoldPendingSortMethod === 'sortTitle') {
                pendingSortLength = 8 * sortBy.title.length + 80;
           }
 
@@ -285,7 +285,7 @@ export const MyHolds = () => {
                                                        borderColor: 'gray.400',
                                                   }}
                                                   name="sortBy"
-                                                  selectedValue={pendingSortMethod}
+                                                  selectedValue={userHoldPendingSortMethod}
                                                   accessibilityLabel={getTermFromDictionary(language, 'select_sort_method')}
                                                   _selectedItem={{
                                                        bg: 'tertiary.300',
@@ -324,7 +324,7 @@ export const MyHolds = () => {
                                              }}
                                              isReadOnly={Platform.OS === 'android'}
                                              name="sortBy"
-                                             selectedValue={pendingSortMethod}
+                                             selectedValue={userHoldPendingSortMethod}
                                              accessibilityLabel={getTermFromDictionary(language, 'select_sort_method')}
                                              _selectedItem={{
                                                   bg: 'tertiary.300',
@@ -349,23 +349,23 @@ export const MyHolds = () => {
           }
 
           let readySortLength = 8 * sortBy.expiration.length + 80;
-          if (readySortMethod === 'author') {
+          if (userHoldReadySortMethod === 'author') {
                readySortLength = 8 * sortBy.author.length + 80;
-          } else if (readySortMethod === 'format') {
+          } else if (userHoldReadySortMethod === 'format') {
                readySortLength = 8 * sortBy.format.length + 80;
-          } else if (readySortMethod === 'status') {
+          } else if (userHoldReadySortMethod === 'status') {
                readySortLength = 8 * sortBy.status.length + 80;
-          } else if (readySortMethod === 'placed') {
+          } else if (userHoldReadySortMethod === 'placed') {
                readySortLength = 8 * sortBy.date_placed.length + 80;
-          } else if (readySortMethod === 'position') {
+          } else if (userHoldReadySortMethod === 'position') {
                readySortLength = 8 * sortBy.position.length + 80;
-          } else if (readySortMethod === 'location') {
+          } else if (userHoldReadySortMethod === 'location') {
                readySortLength = 8 * sortBy.pickup_location.length + 80;
-          } else if (readySortMethod === 'libraryAccount') {
+          } else if (userHoldReadySortMethod === 'libraryAccount') {
                readySortLength = 8 * sortBy.library_account.length + 80;
-          } else if (readySortMethod === 'sortTitle') {
+          } else if (userHoldReadySortMethod === 'sortTitle') {
                readySortLength = 8 * sortBy.title.length + 80;
-          } else if (readySortMethod === 'expire') {
+          } else if (userHoldReadySortMethod === 'expire') {
                readySortLength = 8 * sortBy.expiration.length + 80;
           }
 
@@ -382,7 +382,7 @@ export const MyHolds = () => {
                                              }}
                                              isReadOnly={Platform.OS === 'android'}
                                              name="sortBy"
-                                             selectedValue={readySortMethod}
+                                             selectedValue={userHoldReadySortMethod}
                                              accessibilityLabel={getTermFromDictionary(language, 'select_sort_method')}
                                              _selectedItem={{
                                                   bg: 'tertiary.300',
@@ -460,7 +460,7 @@ export const MyHolds = () => {
      };
 
      const displaySectionHeader = (title) => {
-          console.log(title);
+          if (__DEV__) { console.log(title); }
           if (title === 'Pending') {
                return (
                     <Box bgColor="warmGray.50" borderBottomWidth="1" _dark={{ borderColor: 'gray.600', bgColor: 'coolGray.800' }} borderColor="coolGray.200" flexWrap="nowrap" maxWidth="100%" safeArea={2}>
@@ -547,54 +547,3 @@ export const MyHolds = () => {
      );
 };
 
-function sortHolds(holds, pendingSort, readySort) {
-     let sortedHolds = holds;
-     let holdsReady = [];
-     let holdsNotReady = [];
-
-     let pendingSortMethod = pendingSort;
-     if (pendingSort === 'sortTitle') {
-          pendingSortMethod = 'title';
-     } else if (pendingSort === 'libraryAccount') {
-          pendingSortMethod = 'user';
-     }
-
-     let readySortMethod = readySort;
-     if (readySort === 'sortTitle') {
-          readySortMethod = 'title';
-     } else if (readySort === 'libraryAccount') {
-          readySortMethod = 'user';
-     }
-
-     if (holds) {
-          if (holds[1].title === 'Pending') {
-               holdsNotReady = holds[1].data;
-               if (pendingSortMethod === 'position') {
-                    holdsNotReady = _.orderBy(
-                         holdsNotReady,
-                         function (obj) {
-                              return Number(obj.position);
-                         },
-                         ['desc']
-                    );
-               }
-               holdsNotReady = _.orderBy(holdsNotReady, [pendingSortMethod], ['asc']);
-          }
-
-          if (holds[0].title === 'Ready') {
-               holdsReady = holds[0].data;
-               holdsReady = _.orderBy(holdsReady, [readySortMethod], ['asc']);
-          }
-     }
-
-     return [
-          {
-               title: 'Ready',
-               data: holdsReady,
-          },
-          {
-               title: 'Pending',
-               data: holdsNotReady,
-          },
-     ];
-}

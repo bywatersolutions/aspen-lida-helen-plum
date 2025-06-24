@@ -50,6 +50,12 @@ export const UserContext = React.createContext({
      updateNotificationHistory: () => {},
      inbox: [],
      updateInbox: () => {},
+     userCheckoutSortMethod: 'dueAsc',
+     updateUserCheckoutSortMethod: () => {},
+     userHoldPendingSortMethod: 'sortTitle',
+     updateUserHoldReadySortMethod: 'expire',
+     updateUserHoldPendingSortMethod: () => {},
+     updateUserHoldReadySortMethod: () => {},
 });
 export const LibrarySystemContext = React.createContext({
      updateLibrary: () => {},
@@ -90,17 +96,11 @@ export const CheckoutsContext = React.createContext({
      updateCheckouts: () => {},
      checkouts: [],
      resetCheckouts: () => {},
-     sortMethod: 'dueAsc',
-     updateSortMethod: () => {},
 });
 export const HoldsContext = React.createContext({
      updateHolds: () => {},
      holds: [],
      resetHolds: () => {},
-     pendingSortMethod: 'sortTitle',
-     readySortMethod: 'expire',
-     updatePendingSortMethod: () => {},
-     updateReadySortMethod: () => {},
 });
 export const GroupedWorkContext = React.createContext({
      updateGroupedWork: () => {},
@@ -384,9 +384,9 @@ export const UserProvider = ({ children }) => {
      const [notificationHistory, setNotificationHistory] = useState([]);
      const [inbox, setInbox] = useState([]);
      const [sublocations, setSublocations] = useState([]);
-
-     const { updatePendingSortMethod, updateReadySortMethod } = React.useContext(HoldsContext);
-     const { updateSortMethod } = React.useContext(CheckoutsContext);
+     const [userCheckoutSortMethod, setUserCheckoutSortMethod] = useState('dueAsc');
+     const [userHoldPendingSortMethod, setUserHoldPendingSortMethod] = useState('sortTitle');
+     const [userHoldReadySortMethod, setUserHoldReadySortMethod] = useState('expire');
 
      const updateUser = (data) => {
           if (user !== data) {
@@ -400,11 +400,17 @@ export const UserProvider = ({ children }) => {
 
                setUser(data);
 
-               updatePendingSortMethod(user?.holdSortUnavailable ?? 'title');
-               updateReadySortMethod(user?.holdSortAvailable ?? 'expire');
-               updateSortMethod(user?.checkoutSort ?? 'dueDate');
+               if (_.isObject(data) && !_.isUndefined(data.holdSortUnavailable)) {
+                    updateUserHoldPendingSortMethod(data.holdSortUnavailable);
+               }
+               if (_.isObject(data) && !_.isUndefined(data.holdSortAvailable)) {
+                    updateUserHoldReadySortMethod(data.holdSortAvailable);
+               }
+               if (_.isObject(data) && !_.isUndefined(data.checkoutSort)) {
+                    updateUserCheckoutSortMethod(data.checkoutSort);
+               }
 
-               console.log('updated UserContext');
+               if (__DEV__) { console.log('updated UserContext'); }
           } else {
                console.log("User data hasn't changed");
           }
@@ -614,6 +620,21 @@ export const UserProvider = ({ children }) => {
           console.log('updated notification inbox in UserContext');
      };
 
+     const updateUserCheckoutSortMethod = (data) => {
+          setUserCheckoutSortMethod(data);
+          if (__DEV__) { console.log('Updated user checkout sort to ' + data); }
+     };
+
+     const updateUserHoldReadySortMethod = (data) => {
+          setUserHoldReadySortMethod(data);
+          if (__DEV__) { console.log('Updated user checkout sort to ' + data); }
+     };
+
+     const updateUserHoldPendingSortMethod = (data) => {
+          setUserHoldPendingSortMethod(data);
+          if (__DEV__) { console.log('Updated user checkout sort to ' + data); }
+     };
+
      return (
           <UserContext.Provider
                value={{
@@ -655,7 +676,13 @@ export const UserProvider = ({ children }) => {
                     inbox,
                     updateInbox,
                     sublocations,
-                    updateSublocations
+                    updateSublocations,
+                    userCheckoutSortMethod,
+                    updateUserCheckoutSortMethod,
+                    userHoldPendingSortMethod,
+                    userHoldReadySortMethod,
+                    updateUserHoldPendingSortMethod,
+                    updateUserHoldReadySortMethod,
                }}>
                {children}
           </UserContext.Provider>
@@ -706,16 +733,10 @@ export const BrowseCategoryProvider = ({ children }) => {
 
 export const CheckoutsProvider = ({ children }) => {
      const [checkouts, setCheckouts] = useState();
-     const [sortMethod, setSortMethod] = useState('dueAsc');
 
      const updateCheckouts = (data) => {
           setCheckouts(data);
           console.log('updated CheckoutsContext');
-     };
-
-     const updateSortMethod = (data) => {
-          setSortMethod(data);
-          console.log('updated sortMethod');
      };
 
      const resetCheckouts = () => {
@@ -727,10 +748,8 @@ export const CheckoutsProvider = ({ children }) => {
           <CheckoutsContext.Provider
                value={{
                     checkouts,
-                    sortMethod,
                     updateCheckouts,
                     resetCheckouts,
-                    updateSortMethod,
                }}>
                {children}
           </CheckoutsContext.Provider>
@@ -739,22 +758,10 @@ export const CheckoutsProvider = ({ children }) => {
 
 export const HoldsProvider = ({ children }) => {
      const [holds, setHolds] = useState();
-     const [pendingSortMethod, setPendingSortMethod] = useState('sortTitle');
-     const [readySortMethod, setReadySortMethod] = useState('expire');
 
      const updateHolds = (data) => {
           setHolds(data);
           console.log('updated HoldsContext');
-     };
-
-     const updatePendingSortMethod = (data) => {
-          setPendingSortMethod(data);
-          console.log('updated pendingSortMethod');
-     };
-
-     const updateReadySortMethod = (data) => {
-          setReadySortMethod(data);
-          console.log('updated readySortMethod');
      };
 
      const resetHolds = () => {
@@ -768,10 +775,6 @@ export const HoldsProvider = ({ children }) => {
                     holds,
                     updateHolds,
                     resetHolds,
-                    readySortMethod,
-                    pendingSortMethod,
-                    updateReadySortMethod,
-                    updatePendingSortMethod,
                }}>
                {children}
           </HoldsContext.Provider>

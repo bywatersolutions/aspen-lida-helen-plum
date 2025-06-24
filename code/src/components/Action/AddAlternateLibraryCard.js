@@ -164,13 +164,14 @@ export const AddAlternateLibraryCard = (props) => {
                                         setLoading(true);
                                         await completeAction(id, action, activeAccount, '', '', location, null, library.baseUrl, volume, holdType, holdNotificationPreferences, item).then(async (result) => {
                                              setResponse(result);
+                                             if (__DEV__) {
+                                                  console.log("Completed Action after add alternate library card");
+                                             }
                                              if (result) {
                                                   if (result.success === true || result.success === 'true') {
-                                                       queryClient.invalidateQueries({ queryKey: ['holds', activeAccount, library.baseUrl, language] });
+                                                       queryClient.invalidateQueries({ queryKey: ['holds', user.id, library.baseUrl, language] });
                                                        queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
-                                                       /*await refreshProfile(library.baseUrl).then((profile) => {
-                                               updateUser(profile);
-                                               });*/
+                                                       queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
                                                   }
 
                                                   if (result?.confirmationNeeded && result.confirmationNeeded === true) {

@@ -12,7 +12,7 @@ import { DisplaySystemMessage } from '../../../components/Notifications';
 import { CheckoutsContext, LanguageContext, LibrarySystemContext, SystemMessagesContext, ThemeContext, UserContext } from '../../../context/initialContext';
 import { getTermFromDictionary, getTranslationsWithValues } from '../../../translations/TranslationService';
 import { confirmRenewAllCheckouts, confirmRenewCheckout, renewAllCheckouts } from '../../../util/accountActions';
-import {getPatronCheckedOutItems, setSortPreferences} from '../../../util/api/user';
+import { getPatronCheckedOutItems, setSortPreferences, sortCheckouts } from '../../../util/api/user';
 import { stripHTML } from '../../../util/apiAuth';
 import { MyCheckout } from './MyCheckout';
 
@@ -20,9 +20,9 @@ export const MyCheckouts = () => {
      const isFetchingCheckouts = useIsFetching({ queryKey: ['checkouts'] });
      const queryClient = useQueryClient();
      const navigation = useNavigation();
-     const { user, updateUser } = React.useContext(UserContext);
+     const { user, updateUser, userCheckoutSortMethod, updateUserCheckoutSortMethod } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
-     const { checkouts, updateCheckouts, sortMethod, updateSortMethod } = React.useContext(CheckoutsContext);
+     const { checkouts, updateCheckouts } = React.useContext(CheckoutsContext);
      const { language } = React.useContext(LanguageContext);
      const [checkoutSource, setCheckoutSource] = React.useState('all');
      const [isLoading, setLoading] = React.useState(false);
@@ -63,16 +63,17 @@ export const MyCheckouts = () => {
           });
      }, [navigation]);
 
-     useQuery(['checkouts', user.id, library.baseUrl, language], () => getPatronCheckedOutItems('all', library.baseUrl, true, language), {
+     useQuery(['checkouts', user.id, library.baseUrl, language], () => getPatronCheckedOutItems('all', library.baseUrl, false, language), {
           placeholderData: checkouts,
           onSuccess: (data) => {
-               updateCheckouts(data);
+               const sortedCheckouts = sortCheckouts(data, userCheckoutSortMethod);
+               updateCheckouts(sortedCheckouts);
           },
           onSettle: (data) => setLoading(false),
      });
 
      const toggleSort = async (value) => {
-          updateSortMethod(value);
+          updateUserCheckoutSortMethod(value);
           const sortedCheckouts = sortCheckouts(checkouts, value);
           await setSortPreferences('sort', value, language, library.baseUrl);
           updateCheckouts(sortedCheckouts);
@@ -99,6 +100,7 @@ export const MyCheckouts = () => {
                } else {
                     navigation.setOptions({ title: checkoutsBy.all });
                }
+
                //console.log("Clearing previous checkouts queries for " + originalCheckoutSource);
                //await queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, originalCheckoutSource] });
                //console.log("Re-fetching checkout queries for " + value);
@@ -246,7 +248,7 @@ export const MyCheckouts = () => {
      const reloadCheckouts = async () => {
           setLoading(true);
           queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
-          queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language, 'all'] });
+          queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
           setLoading(false);
      };
 
@@ -274,17 +276,17 @@ export const MyCheckouts = () => {
           let checkoutsSourceLabelLength = 8 * checkoutSourceLabel.length + 80;
 
           let sortLength = 8 * sortBy.title.length + 80;
-          if (sortMethod === 'author') {
+          if (userCheckoutSortMethod === 'author') {
                sortLength = 8 * sortBy.author.length + 80;
-          } else if (sortMethod === 'format') {
+          } else if (userCheckoutSortMethod === 'format') {
                sortLength = 8 * sortBy.format.length + 80;
-          } else if (sortMethod === 'dueAsc') {
+          } else if (userCheckoutSortMethod === 'dueAsc') {
                sortLength = 8 * sortBy.due_asc.length + 80;
-          } else if (sortMethod === 'dueDesc') {
+          } else if (userCheckoutSortMethod === 'dueDesc') {
                sortLength = 8 * sortBy.due_desc.length + 80;
-          } else if (sortMethod === 'libraryAccount') {
+          } else if (userCheckoutSortMethod === 'libraryAccount') {
                sortLength = 8 * sortBy.library_account.length + 80;
-          } else if (sortMethod === 'timesRenewed') {
+          } else if (userCheckoutSortMethod === 'timesRenewed') {
                sortLength = 8 * sortBy.times_renewed.length + 80;
           }
 
@@ -371,7 +373,7 @@ export const MyCheckouts = () => {
                                              borderColor: 'gray.400',
                                         }}
                                         name="sortBy"
-                                        selectedValue={sortMethod}
+                                        selectedValue={userCheckoutSortMethod}
                                         accessibilityLabel={getTermFromDictionary(language, 'select_sort_method')}
                                         _selectedItem={{
                                              bg: 'tertiary.300',
@@ -447,7 +449,7 @@ export const MyCheckouts = () => {
                                                   if (renewConfirmationResponse.renewType === 'all') {
                                                        await confirmRenewAllCheckouts(library.baseUrl, language).then(async (result) => {
                                                             queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
-                                                            queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language, 'all'] });
+                                                            queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
 
                                                             setRenewConfirmationIsOpen(false);
                                                             setConfirmingRenewal(false);
@@ -455,7 +457,7 @@ export const MyCheckouts = () => {
                                                   } else {
                                                        await confirmRenewCheckout(renewConfirmationResponse.barcode, renewConfirmationResponse.recordId, renewConfirmationResponse.source, renewConfirmationResponse.itemId, library.baseUrl, renewConfirmationResponse.userId).then(async (result) => {
                                                             queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
-                                                            queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language, 'all'] });
+                                                            queryClient.invalidateQueries({ queryKey: ['checkouts', user.id, library.baseUrl, language] });
 
                                                             setRenewConfirmationIsOpen(false);
                                                             setConfirmingRenewal(false);
@@ -475,30 +477,3 @@ export const MyCheckouts = () => {
           </SafeAreaView>
      );
 };
-
-function sortCheckouts(checkouts, sort) {
-     let sortedCheckouts = [];
-     console.log("Sorting checkouts by " + sort);
-
-     let sortMethod = sort;
-     let order = 'asc';
-     if (sort === 'sortTitle') {
-          sortMethod = 'title';
-     } else if (sort === 'libraryAccount') {
-          sortMethod = 'user';
-     } else if (sort === 'dueDesc') {
-          sortMethod = 'dueDate';
-          order = 'desc';
-     } else if (sort === 'dueAsc') {
-          sortMethod = 'dueDate';
-     } else if (sort === 'timesRenewed') {
-          sortMethod = 'renewCount';
-          order = 'desc';
-     }
-
-     if (checkouts) {
-          sortedCheckouts = _.orderBy(checkouts, [sortMethod], [order]);
-     }
-
-     return sortedCheckouts;
-}

@@ -28,7 +28,7 @@ const LaunchStackNavigator = () => {
                                                                                 <CheckoutsContext.Consumer>
                                                                                      {(checkouts) => (
                                                                                           <HoldsContext.Consumer>
-                                                                                               {(holds, pendingSortMethod, readySortMethod, updatePendingSortMethod, updateReadySortMethod) => (
+                                                                                               {(holds) => (
                                                                                                     <BrowseCategoryContext.Consumer>
                                                                                                          {(category, list, maxNum, updateMaxCategories) => (
                                                                                                               <Stack.Navigator
@@ -66,8 +66,8 @@ const LaunchStackNavigator = () => {
                                                                                                                                   maxNum,
                                                                                                                                   updateMaxCategories,
                                                                                                                              },
-                                                                                                                             checkoutsContext: checkouts,
-                                                                                                                             holdsContext: holds,
+                                                                                                                             checkoutsContext: { checkouts },
+                                                                                                                             holdsContext: { holds },
                                                                                                                              languageContext: { language, updateLanguage, languages, updateLanguages, dictionary, updateDictionary, languageDisplayName, updateLanguageDisplayName },
                                                                                                                              systemMessagesContext: { systemMessages, updateSystemMessages },
                                                                                                                              themeContext: { mode, updateColorMode },
