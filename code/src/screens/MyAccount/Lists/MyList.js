@@ -5,7 +5,34 @@ import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
 import _ from 'lodash';
 import moment from 'moment';
-import { Badge, Box, Button, CheckIcon, FlatList, FormControl, HStack, Icon, Pressable, ScrollView, Select, Stack, Text, useColorModeValue, useToken, VStack } from 'native-base';
+import {
+     Badge,
+     Box,
+     Button,
+     ButtonGroup,
+     ButtonIcon,
+     ButtonText,
+     CheckIcon,
+     ChevronDownIcon,
+     FlatList,
+     FormControl,
+     FormControlLabel,
+     FormControlLabelText,
+     HStack,
+     Icon,
+     Pressable,
+     ScrollView,
+     Select,
+     SelectBackdrop,
+     SelectContent, SelectDragIndicator,
+     SelectDragIndicatorWrapper,
+     SelectIcon,
+     SelectInput, SelectItem,
+     SelectPortal,
+     SelectTrigger,
+     Text,
+     VStack,
+} from '@gluestack-ui/themed';
 import React from 'react';
 import { Platform, SafeAreaView } from 'react-native';
 import { loadError, popToast } from '../../../components/loadError';
@@ -13,7 +40,13 @@ import { loadError, popToast } from '../../../components/loadError';
 // custom components and helper files
 import { loadingSpinner } from '../../../components/loadingSpinner';
 import { DisplaySystemMessage } from '../../../components/Notifications';
-import { LanguageContext, LibrarySystemContext, SystemMessagesContext, UserContext } from '../../../context/initialContext';
+import {
+     LanguageContext,
+     LibrarySystemContext,
+     SystemMessagesContext,
+     ThemeContext,
+     UserContext,
+} from '../../../context/initialContext';
 import { getCleanTitle } from '../../../helpers/item';
 import { navigateStack } from '../../../helpers/RootNavigator';
 import { getTermFromDictionary, getTranslationsWithValues } from '../../../translations/TranslationService';
@@ -32,7 +65,6 @@ export const MyList = () => {
      const { user } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
      const [list] = React.useState(providedList);
-     const version = formatDiscoveryVersion(library.discoveryVersion);
      const { language } = React.useContext(LanguageContext);
      const [sortBy, setSortBy] = React.useState({
           title: 'Sort By Title',
@@ -41,8 +73,7 @@ export const MyList = () => {
           custom: 'Sort By User Defined',
      });
      const { systemMessages, updateSystemMessages } = React.useContext(SystemMessagesContext);
-     const backgroundColor = useToken('colors', useColorModeValue('warmGray.200', 'coolGray.900'));
-     const textColor = useToken('colors', useColorModeValue('gray.800', 'coolGray.200'));
+     const { textColor, theme, colorMode } = React.useContext(ThemeContext);
      const systemMessagesForScreen = [];
      const [paginationLabel, setPaginationLabel] = React.useState('Page 1 of 1');
 
@@ -202,8 +233,8 @@ export const MyList = () => {
                displayEndTime = moment(displayEndTime).format('h:mm A');
 
                return (
-                    <Pressable borderBottomWidth="1" _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" pl="4" pr="5" py="2" onPress={() => handleOpenEvent(item)}>
-                         <HStack space={3}>
+                    <Pressable borderBottomWidth="$1" _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" pl="4" pr="5" py="2" onPress={() => handleOpenEvent(item)}>
+                         <HStack space="sm">
                               <VStack maxW="35%">
                                    <Image
                                         alt={item.title}
@@ -223,17 +254,15 @@ export const MyList = () => {
                                                   queryClient.invalidateQueries({ queryKey: ['list', id] });
                                              });
                                         }}
-                                        colorScheme="danger"
-                                        leftIcon={<Icon as={MaterialIcons} name="delete" size="xs" />}
                                         size="sm"
-                                        variant="ghost">
-                                        {getTermFromDictionary(language, 'delete')}
+                                        variant="link">
+                                        <ButtonIcon color={theme['colors']['warning']['500']} as={MaterialIcons} name="delete" />
+                                        <ButtonText color={theme['colors']['warning']['500']}>{getTermFromDictionary(language, 'delete')}</ButtonText>
                                    </Button>
                               </VStack>
                               <VStack w="65%">
                                    <Text
-                                        _dark={{ color: 'warmGray.50' }}
-                                        color="coolGray.800"
+                                        color={textColor}
                                         bold
                                         fontSize={{
                                              base: 'md',
@@ -243,18 +272,18 @@ export const MyList = () => {
                                    </Text>
                                    {item.start_date && item.end_date ? (
                                         <>
-                                             <Text>{displayDay}</Text>
-                                             <Text _dark={{ color: 'warmGray.50' }} color="coolGray.800">
+                                             <Text color={textColor}>{displayDay}</Text>
+                                             <Text color={textColor}>
                                                   {displayStartTime} - {displayEndTime}
                                              </Text>
                                         </>
                                    ) : null}
                                    {registrationRequired ? (
-                                        <Stack mt={1.5} direction="row" space={1} flexWrap="wrap">
+                                        <HStack mt="$1" direction="row" space="sm" flexWrap="wrap">
                                              <Badge key={0} colorScheme="secondary" mt={1} variant="outline" rounded="4px" _text={{ fontSize: 12 }}>
                                                   {getTermFromDictionary(language, 'registration_required')}
                                              </Badge>
-                                        </Stack>
+                                        </HStack>
                                    ) : null}
                               </VStack>
                          </HStack>
@@ -263,8 +292,8 @@ export const MyList = () => {
           }
 
           return (
-               <Pressable borderBottomWidth="1" _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" pl="4" pr="5" py="2" onPress={() => handleOpenItem(item.id, item.title)}>
-                    <HStack space={3}>
+               <Pressable borderBottomWidth="$1" borderColor={colorMode === 'light' ? theme['colors']['coolGray']['200'] : theme['colors']['gray']['600']} pl="$4" pr="$5" py="$2" onPress={() => handleOpenItem(item.id, item.title)}>
+                    <HStack space="sm">
                          <VStack maxW="35%">
                               <Image
                                    alt={item.title}
@@ -284,17 +313,15 @@ export const MyList = () => {
                                              queryClient.invalidateQueries({ queryKey: ['list', id] });
                                         });
                                    }}
-                                   colorScheme="danger"
-                                   leftIcon={<Icon as={MaterialIcons} name="delete" size="xs" />}
                                    size="sm"
-                                   variant="ghost">
-                                   {getTermFromDictionary(language, 'delete')}
+                                   variant="link">
+                                   <ButtonIcon color={theme['colors']['warning']['500']} as={MaterialIcons} name="delete" mr="$1" />
+                                   <ButtonText color={theme['colors']['warning']['500']}>{getTermFromDictionary(language, 'delete')}</ButtonText>
                               </Button>
                          </VStack>
                          <VStack w="65%">
                               <Text
-                                   _dark={{ color: 'warmGray.50' }}
-                                   color="coolGray.800"
+                                   color={textColor}
                                    bold
                                    fontSize={{
                                         base: 'sm',
@@ -303,7 +330,7 @@ export const MyList = () => {
                                    {item.title}
                               </Text>
                               {item.author ? (
-                                   <Text _dark={{ color: 'warmGray.50' }} color="coolGray.800" fontSize="xs">
+                                   <Text color={textColor} fontSize="xs">
                                         {getTermFromDictionary(language, 'by')} {item.author}
                                    </Text>
                               ) : null}
@@ -316,22 +343,19 @@ export const MyList = () => {
      const Paging = () => {
           return (
                <Box
-                    safeArea={2}
-                    bgColor="coolGray.100"
-                    borderTopWidth="1"
-                    _dark={{
-                         borderColor: 'gray.600',
-                         bg: 'coolGray.700',
-                    }}
-                    borderColor="coolGray.200"
+                    p="$2"
+                    bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                    borderBottomWidth="$1"
+                    borderColor={colorMode === 'light' ? theme['colors']['coolGray']['200'] : theme['colors']['gray']['600']}
                     flexWrap="nowrap"
                     alignItems="center">
                     <ScrollView horizontal>
-                         <Button.Group size="sm">
-                              <Button onPress={() => setPage(page - 1)} isDisabled={page === 1}>
-                                   {getTermFromDictionary(language, 'previous')}
+                         <ButtonGroup size="sm">
+                              <Button bgColor={theme['colors']['primary']['500']} onPress={() => setPage(page - 1)} isDisabled={page === 1}>
+                                   <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'previous')}</ButtonText>
                               </Button>
                               <Button
+                                   bgColor={theme['colors']['primary']['500']}
                                    onPress={() => {
                                         if (!isPreviousData && data?.hasMore) {
                                              console.log('Adding to page');
@@ -339,11 +363,11 @@ export const MyList = () => {
                                         }
                                    }}
                                    isDisabled={isPreviousData || !data?.hasMore}>
-                                   {getTermFromDictionary(language, 'next')}
+                                   <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'next')}</ButtonText>
                               </Button>
-                         </Button.Group>
+                         </ButtonGroup>
                     </ScrollView>
-                    <Text mt={2} fontSize="sm">
+                    <Text mt="$2" fontSize="sm" color={textColor}>
                          {paginationLabel}
                     </Text>
                </Box>
@@ -363,36 +387,39 @@ export const MyList = () => {
           }
           return (
                <Box
-                    safeArea={2}
-                    bgColor="coolGray.100"
-                    borderBottomWidth="1"
-                    _dark={{
-                         borderColor: 'gray.600',
-                         bg: 'coolGray.700',
-                    }}
-                    borderColor="coolGray.200"
+                    p="$2"
+                    bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                    borderBottomWidth="$1"
+                    borderColor={colorMode === 'light' ? theme['colors']['coolGray']['200'] : theme['colors']['gray']['600']}
                     flexWrap="nowrap">
                     <ScrollView horizontal>
-                         <HStack space={2}>
+                         <HStack space="sm">
                               <FormControl w={sortLength}>
                                    <Select
-                                        _dark={{
-                                             borderWidth: '1',
-                                             borderColor: 'gray.400',
-                                        }}
-                                        isReadOnly={Platform.OS === 'android'}
                                         name="sortBy"
                                         selectedValue={sort}
+                                        defaultValue={sort}
                                         accessibilityLabel={getTermFromDictionary(language, 'select_sort_method')}
-                                        _selectedItem={{
-                                             bg: 'tertiary.300',
-                                             endIcon: <CheckIcon size="5" />,
-                                        }}
                                         onValueChange={(itemValue) => setSort(itemValue)}>
-                                        <Select.Item label={sortBy.title} value="title" key={0} />
-                                        <Select.Item label={sortBy.dateAdded} value="dateAdded" key={1} />
-                                        <Select.Item label={sortBy.recentlyAdded} value="recentlyAdded" key={2} />
-                                        <Select.Item label={sortBy.custom} value="custom" key={3} />
+                                        <SelectTrigger variant="outline" size="sm" borderWidth={colorMode === 'light' ? '$none' : '$1'}
+                                                       borderColor={colorMode === 'light' ? '$none' : theme['colors']['gray']['400']}>
+                                             <SelectInput color={textColor} placeholder="Select option" />
+                                             <SelectIcon mr="$3">
+                                                  <Icon color={textColor} as={ChevronDownIcon} />
+                                             </SelectIcon>
+                                        </SelectTrigger>
+                                        <SelectPortal>
+                                             <SelectBackdrop />
+                                             <SelectContent>
+                                                  <SelectDragIndicatorWrapper>
+                                                       <SelectDragIndicator />
+                                                  </SelectDragIndicatorWrapper>
+                                                  <SelectItem label={sortBy.title} value="title" key={0} />
+                                                  <SelectItem label={sortBy.dateAdded} value="dateAdded" key={1} />
+                                                  <SelectItem label={sortBy.recentlyAdded} value="recentlyAdded" key={2} />
+                                                  <SelectItem label={sortBy.custom} value="custom" key={3} />
+                                             </SelectContent>
+                                        </SelectPortal>
                                    </Select>
                               </FormControl>
                               <EditList data={list} listId={id} />

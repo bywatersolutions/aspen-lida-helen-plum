@@ -2,13 +2,33 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import _ from 'lodash';
-import { AlertDialog, Button, Center, FormControl, Heading, Icon, Input, Modal, Radio, Stack, TextArea, ChevronLeftIcon, Pressable } from 'native-base';
 import React, { useState } from 'react';
 import { popAlert } from '../../../components/loadError';
-import { LanguageContext, LibrarySystemContext, UserContext } from '../../../context/initialContext';
+import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from '../../../context/initialContext';
 import { navigate, navigateStack } from '../../../helpers/RootNavigator';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
 import { deleteList, editList, getListDetails } from '../../../util/api/list';
+import {
+     AlertDialog, AlertDialogContent, AlertDialogBody, AlertDialogFooter, Text,
+     Button, ButtonText, ButtonGroup,
+     Pressable,
+     Center, Heading, Icon, Input, InputField, Modal,
+     CircleIcon, CloseIcon, ModalBackdrop, ChevronLeftIcon,
+     ModalCloseButton,
+     ModalContent, ModalBody, ModalFooter,
+     ModalHeader,
+     RadioGroup,
+     Radio,
+     HStack,
+     RadioIcon,
+     RadioIndicator,
+     RadioLabel,
+     TextareaInput,
+     Textarea,
+     FormControl,
+     FormControlLabel,
+     FormControlLabelText, AlertDialogBackdrop, AlertDialogCloseButton, AlertDialogHeader, ButtonIcon,
+} from '@gluestack-ui/themed';
 
 const EditList = (props) => {
      const queryClient = useQueryClient();
@@ -23,6 +43,7 @@ const EditList = (props) => {
      const [description, setDescription] = React.useState(data.description);
      const [list, setList] = React.useState([]);
      const [isPublic, setPublic] = React.useState(data.public);
+     const { theme, textColor, colorMode } = React.useContext(ThemeContext);
 
      useQuery(['list-details', data.id], () => getListDetails(data.id, library.baseUrl), {
           onSuccess: (data) => {
@@ -50,51 +71,63 @@ const EditList = (props) => {
 
      return (
           <>
-               <Button.Group size="sm" justifyContent="center">
-                    <Button onPress={() => setShowModal(true)} leftIcon={<Icon as={MaterialIcons} name="edit" size="xs" />}>
-                         {getTermFromDictionary(language, 'edit')}
+               <ButtonGroup size="sm" justifyContent="center" >
+                    <Button onPress={() => setShowModal(true)} bgColor={theme['colors']['primary']['500']}>
+                         <ButtonIcon color={theme['colors']['primary']['500-text']} as={MaterialIcons} name="edit" mr="$1" />
+                         <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'edit')}</ButtonText>
                     </Button>
                     <DeleteList listId={listId} />
-               </Button.Group>
+               </ButtonGroup>
                <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="full" avoidKeyboard>
-                    <Modal.Content maxWidth="90%" bg="white" _dark={{ bg: 'coolGray.800' }}>
-                         <Modal.CloseButton />
-                         <Modal.Header>
-                              <Heading size="sm">
-                                   {getTermFromDictionary(language, 'edit')} {data.title}
-                              </Heading>
-                         </Modal.Header>
-                         <Modal.Body>
-                              <FormControl pb={5}>
-                                   <FormControl.Label>{getTermFromDictionary(language, 'title')}</FormControl.Label>
-                                   <Input id="title" defaultValue={data.title} autoComplete="off" onChangeText={(text) => setTitle(text)} />
+                    <ModalBackdrop />
+                    <ModalContent maxWidth="90%" bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                         <ModalHeader>
+                              <Heading size="md" color={textColor}>{getTermFromDictionary(language, 'edit')} {data.title}</Heading>
+                              <ModalCloseButton hitSlop={{ top: 30, bottom: 30, left: 30, right: 30 }}>
+                                   <Icon as={CloseIcon} color={textColor} />
+                              </ModalCloseButton>
+                         </ModalHeader>
+                         <ModalBody>
+                              <FormControl pb="$5">
+                                   <FormControlLabel>
+                                        <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'title')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <Input><InputField id="title" defaultValue={data.title} autoComplete="off" onChangeText={(text) => setTitle(text)} color={textColor}/></Input>
                               </FormControl>
-                              <FormControl pb={5}>
-                                   <FormControl.Label>{getTermFromDictionary(language, 'description')}</FormControl.Label>
-                                   <TextArea id="description" defaultValue={data.description} autoComplete="off" onChangeText={(text) => setDescription(text)} />
+                              <FormControl pb="$5">
+                                   <FormControlLabel color={textColor}>{getTermFromDictionary(language, 'description')}</FormControlLabel>
+                                   <Textarea id="description" defaultValue={data.description} autoComplete="off" onChangeText={(text) => setDescription(text)}><TextareaInput color={textColor}/></Textarea>
                               </FormControl>
                               <FormControl>
-                                   <FormControl.Label>{getTermFromDictionary(language, 'access')}</FormControl.Label>
-                                   <Radio.Group
+                                   <FormControlLabel>
+                                     <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'access')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <RadioGroup
                                         value={isPublic}
                                         onChange={(nextValue) => {
                                              setPublic(nextValue);
                                         }}>
-                                        <Stack direction="row" alignItems="center" space={4} w="75%" maxW="300px">
-                                             <Radio value={false} my={1}>
-                                                  {getTermFromDictionary(language, 'private')}
+                                        <HStack direction="row" alignItems="center" space="md" w="75%" maxW="300px">
+                                             <Radio value={false} my="$1">
+                                                  <RadioIndicator mr="$2">
+                                                       <RadioIcon as={CircleIcon} strokeWidth={1} />
+                                                  </RadioIndicator>
+                                                  <RadioLabel color={textColor}>{getTermFromDictionary(language, 'private')}</RadioLabel>
                                              </Radio>
-                                             <Radio value={true} my={1}>
-                                                  {getTermFromDictionary(language, 'public')}
+                                             <Radio value={true} my="$1">
+                                                  <RadioIndicator mr="$2">
+                                                       <RadioIcon as={CircleIcon} strokeWidth={1} />
+                                                  </RadioIndicator>
+                                                  <RadioLabel color={textColor}>{getTermFromDictionary(language, 'public')}</RadioLabel>
                                              </Radio>
-                                        </Stack>
-                                   </Radio.Group>
+                                        </HStack>
+                                   </RadioGroup>
                               </FormControl>
-                         </Modal.Body>
-                         <Modal.Footer>
-                              <Button.Group>
+                         </ModalBody>
+                         <ModalFooter>
+                              <ButtonGroup>
                                    <Button variant="outline" onPress={() => setShowModal(false)}>
-                                        {getTermFromDictionary(language, 'close_window')}
+                                        <ButtonText>{getTermFromDictionary(language, 'close_window')}</ButtonText>
                                    </Button>
                                    <Button
                                         isLoading={loading}
@@ -111,11 +144,11 @@ const EditList = (props) => {
                                                   queryClient.invalidateQueries({ queryKey: ['lists', user.id, library.baseUrl, language] });
                                              });
                                         }}>
-                                        {getTermFromDictionary(language, 'save')}
+                                        <ButtonText>{getTermFromDictionary(language, 'save')}</ButtonText>
                                    </Button>
-                              </Button.Group>
-                         </Modal.Footer>
-                    </Modal.Content>
+                              </ButtonGroup>
+                         </ModalFooter>
+                    </ModalContent>
                </Modal>
           </>
      );
@@ -124,6 +157,7 @@ const EditList = (props) => {
 const DeleteList = (props) => {
      const queryClient = useQueryClient();
      const { listId } = props;
+     const {theme, textColor, colorMode } = React.useContext(ThemeContext);
      const navigation = useNavigation();
      const { user } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
@@ -135,23 +169,29 @@ const DeleteList = (props) => {
 
      return (
           <Center>
-               <Button onPress={() => setIsOpen(!isOpen)} startIcon={<Icon as={MaterialIcons} name="delete" size="xs" />} size="sm" colorScheme="danger">
-                    Delete List
+               <Button bgColor={theme['colors']['danger']['500']} onPress={() => setIsOpen(!isOpen)} size="sm" >
+                    <ButtonIcon color={theme['colors']['white']} as={MaterialIcons} name="delete" mr="$1"/>
+                    <ButtonText color={theme['colors']['white']}>Delete List</ButtonText>
                </Button>
                <AlertDialog leastDestructiveRef={cancelRef} isOpen={isOpen} onClose={onClose}>
-                    <AlertDialog.Content>
-                         <AlertDialog.CloseButton />
-                         <AlertDialog.Header>Delete List</AlertDialog.Header>
-                         <AlertDialog.Body>Are you sure you want to delete this list?</AlertDialog.Body>
-                         <AlertDialog.Footer>
-                              <Button.Group space={2}>
-                                   <Button variant="unstyled" colorScheme="coolGray" onPress={onClose} ref={cancelRef}>
-                                        Cancel
+                    <AlertDialogBackdrop />
+                    <AlertDialogContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                         <AlertDialogHeader>
+                              <Heading size="md" color={textColor}>Delete List</Heading>
+                              <AlertDialogCloseButton>
+                                   <Icon as={CloseIcon} color={textColor} />
+                              </AlertDialogCloseButton>
+                         </AlertDialogHeader>
+                         <AlertDialogBody><Text color={textColor}>Are you sure you want to delete this list?</Text></AlertDialogBody>
+                         <AlertDialogFooter>
+                              <ButtonGroup space="sm">
+                                   <Button variant="link" onPress={onClose} ref={cancelRef}>
+                                        <ButtonText color={textColor}>Cancel</ButtonText>
                                    </Button>
                                    <Button
+                                        bgColor={theme['colors']['danger']['500']}
                                         isLoading={loading}
                                         isLoadingText="Deleting..."
-                                        colorScheme="danger"
                                         onPress={() => {
                                              setLoading(true);
                                              deleteList(listId, library.baseUrl).then(async (res) => {
@@ -172,11 +212,11 @@ const DeleteList = (props) => {
                                                   }
                                              });
                                         }}>
-                                        Delete
+                                        <ButtonText color={theme['colors']['white']}>Delete</ButtonText>
                                    </Button>
-                              </Button.Group>
-                         </AlertDialog.Footer>
-                    </AlertDialog.Content>
+                              </ButtonGroup>
+                         </AlertDialogFooter>
+                    </AlertDialogContent>
                </AlertDialog>
           </Center>
      );

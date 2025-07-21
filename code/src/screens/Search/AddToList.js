@@ -1,15 +1,52 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import _ from 'lodash';
-import { Box, Button, Center, CloseIcon, FormControl, HStack, Icon, Input, Pressable, Radio, Select, Stack, Text, TextArea, VStack } from 'native-base';
 import React, { useState } from 'react';
 import { Platform } from 'react-native';
 import Modal from 'react-native-modal';
-import { LanguageContext, LibrarySystemContext, UserContext } from '../../context/initialContext';
+import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from '../../context/initialContext';
 import { getTermFromDictionary } from '../../translations/TranslationService';
 import { addTitlesToList, createListFromTitle } from '../../util/api/list';
 
 import { PATRON } from '../../util/loadPatron';
+import {
+     Box,
+     Center,
+     CloseIcon,
+     FormControl,
+     HStack,
+     Icon,
+     Input,
+     InputField,
+     Pressable,
+     Radio,
+     RadioGroup,
+     Text,
+     Textarea,
+     VStack,
+     Button,
+     ButtonText,
+     ButtonGroup,
+     ButtonIcon,
+     ChevronDownIcon,
+     Select,
+     SelectBackdrop,
+     SelectDragIndicator,
+     SelectDragIndicatorWrapper,
+     SelectIcon,
+     SelectInput,
+     SelectTrigger,
+     SelectPortal,
+     SelectItem,
+     SelectContent,
+     FormControlLabel,
+     FormControlLabelText,
+     RadioIndicator,
+     RadioIcon,
+     CircleIcon,
+     RadioLabel,
+     TextareaInput,
+} from '@gluestack-ui/themed';
 
 export const AddToList = (props) => {
      const item = props.itemId;
@@ -28,6 +65,7 @@ export const AddToList = (props) => {
      const [title, saveTitle] = useState();
      const [isPublic, saveIsPublic] = useState();
      const queryClient = useQueryClient();
+     const { theme, textColor, colorMode } = React.useContext(ThemeContext);
 
      const toggleModal = () => {
           setOpen(!open);
@@ -47,17 +85,32 @@ export const AddToList = (props) => {
      const SelectLists = () => {
           return (
                <Select
-                    isReadOnly={Platform.OS === 'android'}
                     selectedValue={listId}
+                    defaultValue={listId}
                     onValueChange={(itemValue) => {
                          setListId(itemValue);
                     }}
                     _actionSheet={{
                          useRNModal: Platform.OS === 'ios',
                     }}>
+                    <SelectTrigger variant="outline" size="sm" borderWidth={colorMode === 'light' ? '$none' : '$1'}
+                                   borderColor={colorMode === 'light' ? '$none' : theme['colors']['gray']['400']}>
+                         <SelectInput color={textColor} placeholder="Select option" />
+                         <SelectIcon mr="$3">
+                              <Icon color={textColor} as={ChevronDownIcon} />
+                         </SelectIcon>
+                    </SelectTrigger>
+                    <SelectPortal>
+                         <SelectBackdrop />
+                         <SelectContent>
+                              <SelectDragIndicatorWrapper>
+                                   <SelectDragIndicator />
+                              </SelectDragIndicatorWrapper>
                     {_.map(lists, function (item, index, array) {
-                         return <Select.Item key={index} value={item.id} label={item.title} />;
+                         return <SelectItem key={index} value={item.id} label={item.title} />;
                     })}
+                         </SelectContent>
+                    </SelectPortal>
                </Select>
           );
      };
@@ -65,8 +118,9 @@ export const AddToList = (props) => {
      const LargeButton = () => {
           return (
                <Center>
-                    <Button mt={3} onPress={toggleModal} colorScheme="tertiary" leftIcon={<Icon as={MaterialIcons} name="bookmark" size="sm" />}>
-                         {getTermFromDictionary(language, 'add_to_list')}
+                    <Button mt="$3" onPress={toggleModal} bgColor={theme['colors']['tertiary']['500']}>
+                         <ButtonIcon color={theme['colors']['tertiary']['500-text']} as={MaterialIcons} name="bookmark"/>
+                         <ButtonText color={theme['colors']['tertiary']['500-text']}>{getTermFromDictionary(language, 'add_to_list')}</ButtonText>
                     </Button>
                </Center>
           );
@@ -74,16 +128,17 @@ export const AddToList = (props) => {
 
      const SmallButton = () => {
           return (
-               <Button size="sm" variant="ghost" colorScheme="tertiary" leftIcon={<Icon as={MaterialIcons} name="bookmark" size="xs" mr="-1" />} onPress={toggleModal} style={{ flex: 1, flexWrap: 'wrap' }}>
-                    {getTermFromDictionary(language, 'add_to_list')}
+               <Button size="sm" variant="link" bgColor={theme['colors']['tertiary']['500']} onPress={toggleModal} style={{ flex: 1, flexWrap: 'wrap' }}>
+                    <ButtonIcon color={theme['colors']['tertiary']['500-text']} as={MaterialIcons} name="bookmark"/>
+                    <ButtonText color={theme['colors']['tertiary']['500-text']}>{getTermFromDictionary(language, 'add_to_list')}</ButtonText>
                </Button>
           );
      };
 
      const RegularButton = () => {
           return (
-               <Button width={btnWidth} onPress={toggleModal}>
-                    {getTermFromDictionary(language, 'add_to_list')}
+               <Button width={btnWidth} onPress={toggleModal} color={theme['colors']['primary']['500']}>
+                    <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'add_to_list')}</ButtonText>
                </Button>
           );
      };
@@ -98,102 +153,76 @@ export const AddToList = (props) => {
                          setScreen('add-new');
                     }}>
                     <Box
-                         bgColor="muted.50"
                          rounded="md"
-                         p={1}
-                         _text={{ color: 'text.900' }}
-                         _dark={{
-                              bg: 'muted.800',
-                              _text: { color: 'text.50' },
-                         }}>
-                         <VStack space={3}>
+                         p="$2"
+                         bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}
+                    >
+                         <VStack space="md">
                               {screen === 'add-new' && !_.isEmpty(lists) ? (
                                    <>
                                         <HStack
-                                             p={4}
-                                             borderBottomWidth="1"
-                                             bg="muted.50"
+                                             p="$4"
+                                             borderBottomWidth="$1"
                                              justifyContent="space-between"
                                              alignItems="flex-start"
-                                             borderColor="muted.300"
-                                             _dark={{
-                                                  bg: 'muted.800',
-                                                  borderColor: 'muted.700',
-                                             }}>
-                                             <Box
-                                                  _text={{
-                                                       color: 'text.900',
-                                                       fontSize: 'md',
-                                                       fontWeight: 'semibold',
-                                                       lineHeight: 'sm',
-                                                  }}
-                                                  _dark={{
-                                                       _text: { color: 'text.50' },
-                                                  }}>
-                                                  {getTermFromDictionary(language, 'add_to_list')}
-                                             </Box>
+                                             bgColor={colorMode === 'light' ? theme['colors']['muted']['50'] : theme['colors']['muted']['800']}
+                                             borderColor={colorMode === 'light' ? theme['colors']['muted']['300'] : theme['colors']['muted']['700']}
+                                           >
+                                             <Text bold color={textColor}>{getTermFromDictionary(language, 'add_to_list')}</Text>
                                              <Pressable onPress={() => setOpen(false)}>
                                                   <CloseIcon
                                                        zIndex="1"
-                                                       colorScheme="coolGray"
-                                                       p="2"
+                                                       color={textColor}
+                                                       p="$2"
                                                        bg="transparent"
                                                        borderRadius="sm"
-                                                       _icon={{
-                                                            color: 'muted.500',
-                                                            size: '4',
-                                                       }}
-                                                       _dark={{
-                                                            _icon: { color: 'muted.400' },
-                                                            _hover: { bg: 'muted.700' },
-                                                            _pressed: { bg: 'muted.600' },
-                                                       }}
                                                   />
                                              </Pressable>
                                         </HStack>
-                                        <Box p={4} _text={{ color: 'text.900' }} _hover={{ bg: 'muted.200' }} _pressed={{ bg: 'muted.300' }} _dark={{ _text: { color: 'text.50' } }}>
+                                        <Box p="$4">
                                              <FormControl>
-                                                  <VStack space={4}>
-                                                       <Box>
-                                                            <FormControl.Label>{getTermFromDictionary(language, 'choose_a_list')}</FormControl.Label>
+                                                  <VStack space="md">
+                                                       <FormControl>
+                                                            <FormControlLabel>
+                                                                 <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'choose_a_list')}</FormControlLabelText>
+                                                            </FormControlLabel>
                                                             <SelectLists />
-                                                       </Box>
-                                                       <HStack space={2} alignItems="center">
-                                                            <Text>{getTermFromDictionary(language, 'or')}</Text>
+                                                       </FormControl>
+                                                       <HStack space="sm" alignItems="center">
+                                                            <Text color={textColor}>{getTermFromDictionary(language, 'or')}</Text>
                                                             <Button
+                                                                 bgColor={theme['colors']['primary']['500']}
                                                                  size="sm"
                                                                  onPress={() => {
                                                                       setScreen('create-new');
                                                                  }}>
-                                                                 {getTermFromDictionary(language, 'create_new_list')}
+                                                                 <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_new_list')}</ButtonText>
                                                             </Button>
                                                        </HStack>
                                                   </VStack>
                                              </FormControl>
                                         </Box>
 
-                                        <Button.Group
-                                             p={4}
+                                        <ButtonGroup
+                                             p="$4"
                                              flexDirection="row"
                                              justifyContent="flex-end"
                                              flexWrap="wrap"
-                                             bg="muted.50"
-                                             borderColor="muted.300"
-                                             borderTopWidth="1"
-                                             _dark={{
-                                                  bg: 'muted.800',
-                                                  borderColor: 'muted.700',
-                                             }}>
+                                             bgColor={colorMode === 'light' ? theme['colors']['muted']['50'] : theme['colors']['muted']['800']}
+                                             borderTopWidth="$1"
+                                             borderColor={colorMode === 'light' ? theme['colors']['muted']['300'] : theme['colors']['muted']['700']}>
                                              <Button
+                                                  borderColor={theme['colors']['primary']['500']}
                                                   variant="outline"
                                                   onPress={() => {
                                                        setOpen(false);
                                                        setScreen('add-new');
                                                   }}>
-                                                  {getTermFromDictionary(language, 'cancel')}
+                                                  <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'cancel')}</ButtonText>
                                              </Button>
                                              {!_.isEmpty(lists) ? (
                                                   <Button
+                                                       bgColor={theme['colors']['primary']['500']}
                                                        isLoading={loading}
                                                        onPress={() => {
                                                             setLoading(true);
@@ -204,107 +233,92 @@ export const AddToList = (props) => {
                                                                  setOpen(false);
                                                             });
                                                        }}>
-                                                       {getTermFromDictionary(language, 'save_to_list')}
+                                                       <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'save_to_list')}</ButtonText>
                                                   </Button>
                                              ) : (
-                                                  <Button>{getTermFromDictionary(language, 'create_new_list')}</Button>
+                                                  <Button bgColor={theme['colors']['primary']['500']}><ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_new_list')}</ButtonText></Button>
                                              )}
-                                        </Button.Group>
+                                        </ButtonGroup>
                                    </>
                               ) : (
                                    <>
                                         <HStack
                                              justifyContent="space-between"
                                              alignItems="flex-start"
-                                             p={4}
-                                             borderBottomWidth="1"
-                                             bg="muted.50"
-                                             borderColor="muted.300"
-                                             _dark={{
-                                                  bg: 'muted.800',
-                                                  borderColor: 'muted.700',
-                                             }}>
-                                             <Box
-                                                  _text={{
-                                                       color: 'text.900',
-                                                       fontSize: 'md',
-                                                       fontWeight: 'semibold',
-                                                       lineHeight: 'sm',
-                                                  }}
-                                                  _dark={{
-                                                       _text: { color: 'text.50' },
-                                                  }}>
-                                                  {getTermFromDictionary(language, 'create_new_list_item')}
-                                             </Box>
+                                             p="$4"
+                                             borderBottomWidth="$1"
+                                             bgColor={colorMode === 'light' ? theme['colors']['muted']['50'] : theme['colors']['muted']['800']}
+                                             borderColor={colorMode === 'light' ? theme['colors']['muted']['300'] : theme['colors']['muted']['700']}
+                                        >
+                                             <Text bold color={textColor}>{getTermFromDictionary(language, 'create_new_list_item')}</Text>
                                              <Pressable onPress={() => setOpen(false)}>
                                                   <CloseIcon
                                                        zIndex="1"
                                                        colorScheme="coolGray"
-                                                       p="2"
+                                                       p="$2"
                                                        bg="transparent"
                                                        borderRadius="sm"
-                                                       _icon={{
-                                                            color: 'muted.500',
-                                                            size: '4',
-                                                       }}
-                                                       _dark={{
-                                                            _icon: { color: 'muted.400' },
-                                                            _hover: { bg: 'muted.700' },
-                                                            _pressed: { bg: 'muted.600' },
-                                                       }}
+                                                       color={textColor}
                                                   />
                                              </Pressable>
                                         </HStack>
-                                        <Box p={4} _text={{ color: 'text.900' }} _dark={{ _text: { color: 'text.50' } }}>
-                                             <VStack space={4}>
+                                        <Box p="$4">
+                                             <VStack space="md">
                                                   <FormControl>
-                                                       <FormControl.Label>{getTermFromDictionary(language, 'title')}</FormControl.Label>
-                                                       <Input id="title" onChangeText={(text) => saveTitle(text)} returnKeyType="next" />
+                                                       <FormControlLabel><FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'title')}</FormControlLabelText></FormControlLabel>
+                                                       <Input>
+                                                            <InputField id="title" onChangeText={(text) => saveTitle(text)} returnKeyType="next" color={textColor}/>
+                                                       </Input>
                                                   </FormControl>
                                                   <FormControl>
-                                                       <FormControl.Label>{getTermFromDictionary(language, 'description')}</FormControl.Label>
-                                                       <TextArea id="description" onChangeText={(text) => saveDescription(text)} returnKeyType="next" />
+                                                       <FormControlLabel><FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'description')}</FormControlLabelText></FormControlLabel>
+                                                       <Textarea id="description" onChangeText={(text) => saveDescription(text)} returnKeyType="next"><TextareaInput color={textColor}/></Textarea>
                                                   </FormControl>
                                                   <FormControl>
-                                                       <FormControl.Label>{getTermFromDictionary(language, 'access')}</FormControl.Label>
-                                                       <Radio.Group
+                                                       <FormControlLabel><FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'access')}</FormControlLabelText></FormControlLabel>
+                                                       <RadioGroup
                                                             defaultValue="1"
                                                             onChange={(nextValue) => {
                                                                  saveIsPublic(nextValue);
                                                             }}>
-                                                            <Stack direction="row" alignItems="center" space={4} w="75%" maxW="300px">
-                                                                 <Radio value="1" my={1}>
-                                                                      {getTermFromDictionary(language, 'private')}
+                                                            <HStack direction="row" alignItems="center" space={4} w="75%" maxW="300px">
+                                                                 <Radio value="1" my="$1">
+                                                                      <RadioIndicator mr="$2">
+                                                                           <RadioIcon as={CircleIcon} strokeWidth={1} />
+                                                                      </RadioIndicator>
+                                                                      <RadioLabel color={textColor}>{getTermFromDictionary(language, 'private')}</RadioLabel>
                                                                  </Radio>
-                                                                 <Radio value="0" my={1}>
-                                                                      {getTermFromDictionary(language, 'public')}
+                                                                 <Radio value="0" my="$1">
+                                                                      <RadioIndicator mr="$2">
+                                                                           <RadioIcon as={CircleIcon} strokeWidth={1} />
+                                                                      </RadioIndicator>
+                                                                      <RadioLabel color={textColor}>{getTermFromDictionary(language, 'public')}</RadioLabel>
                                                                  </Radio>
-                                                            </Stack>
-                                                       </Radio.Group>
+                                                            </HStack>
+                                                       </RadioGroup>
                                                   </FormControl>
                                              </VStack>
                                         </Box>
-                                        <Button.Group
-                                             p={4}
+                                        <ButtonGroup
+                                             p="$4"
                                              flexDirection="row"
                                              justifyContent="flex-end"
                                              flexWrap="wrap"
-                                             bg="muted.50"
-                                             borderColor="muted.300"
-                                             borderTopWidth="1"
-                                             _dark={{
-                                                  bg: 'muted.800',
-                                                  borderColor: 'muted.700',
-                                             }}>
+                                             bgColor={colorMode === 'light' ? theme['colors']['muted']['50'] : theme['colors']['muted']['800']}
+                                             borderTopWidth="$1"
+                                             borderColor={colorMode === 'light' ? theme['colors']['muted']['300'] : theme['colors']['muted']['700']}
+                                        >
                                              <Button
                                                   variant="outline"
+                                                  borderColor={theme['colors']['primary']['500']}
                                                   onPress={() => {
                                                        setOpen(false);
                                                        setScreen('add-new');
                                                   }}>
-                                                  {getTermFromDictionary(language, 'cancel')}
+                                                  <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'cancel')}</ButtonText>
                                              </Button>
                                              <Button
+                                                  bgColor={theme['colors']['primary']['500']}
                                                   isLoading={loading}
                                                   isLoadingText={getTermFromDictionary(language, 'saving', true)}
                                                   onPress={() => {
@@ -316,9 +330,9 @@ export const AddToList = (props) => {
                                                             setScreen('add-new');
                                                        });
                                                   }}>
-                                                  {getTermFromDictionary(language, 'create_list')}
+                                                  <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_list')}</ButtonText>
                                              </Button>
-                                        </Button.Group>
+                                        </ButtonGroup>
                                    </>
                               )}
                          </VStack>

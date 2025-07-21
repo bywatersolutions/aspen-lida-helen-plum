@@ -1,10 +1,38 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Center, FormControl, Heading, Icon, Input, Modal, Radio, Stack, TextArea } from 'native-base';
+import {
+     Button,
+     ButtonGroup,
+     ButtonText,
+     ButtonIcon,
+     Center,
+     FormControl,
+     FormControlLabel,
+     CircleIcon,
+     FormControlLabelText,
+     Heading,
+     Icon,
+     Input,
+     InputField,
+     Modal,
+     ModalContent,
+     ModalHeader,
+     ModalBody,
+     ModalFooter,
+     Radio,
+     RadioGroup,
+     RadioLabel,
+     RadioIndicator,
+     RadioIcon,
+     HStack,
+     Textarea,
+     TextareaInput,
+     CloseIcon, ModalCloseButton, ModalBackdrop,
+} from '@gluestack-ui/themed';
 import React, { useState } from 'react';
 
 import { popAlert } from '../../../components/loadError';
-import { LanguageContext, LibrarySystemContext, UserContext } from '../../../context/initialContext';
+import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from '../../../context/initialContext';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
 import { createList } from '../../../util/api/list';
 
@@ -15,6 +43,7 @@ const CreateList = (props) => {
      const { library } = React.useContext(LibrarySystemContext);
      const { language } = React.useContext(LanguageContext);
      const { updateLists } = React.useContext(UserContext);
+     const { textColor, theme, colorMode } = React.useContext(ThemeContext);
      const [loading, setAdding] = React.useState(false);
      const [showModal, setShowModal] = useState(false);
 
@@ -32,49 +61,68 @@ const CreateList = (props) => {
 
      return (
           <Center>
-               <Button onPress={toggle} size="sm" leftIcon={<Icon as={MaterialIcons} name="add" size="xs" mr="-1" />}>
-                    {getTermFromDictionary(language, 'create_new_list')}
+               <Button onPress={toggle} size="sm" bgColor={theme['colors']['primary']['500']}>
+                    <ButtonIcon color={theme['colors']['primary']['500-text']} as={MaterialIcons} name="add" mr="$1" />
+                    <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_new_list')}</ButtonText>
                </Button>
                <Modal isOpen={showModal} onClose={toggle} size="full" avoidKeyboard>
-                    <Modal.Content maxWidth="90%" bg="white" _dark={{ bg: 'coolGray.800' }}>
-                         <Modal.CloseButton />
-                         <Modal.Header>
-                              <Heading size="md">{getTermFromDictionary(language, 'create_new_list')}</Heading>
-                         </Modal.Header>
-                         <Modal.Body>
-                              <FormControl pb={5}>
-                                   <FormControl.Label>{getTermFromDictionary(language, 'title')}</FormControl.Label>
-                                   <Input id="title" onChangeText={(text) => setTitle(text)} returnKeyType="next" defaultValue={title} />
+                    <ModalBackdrop />
+                    <ModalContent maxWidth="90%"  bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                         <ModalHeader>
+                              <Heading size="md" color={textColor}>{getTermFromDictionary(language, 'create_new_list')}</Heading>
+                              <ModalCloseButton hitSlop={{ top: 30, bottom: 30, left: 30, right: 30 }}>
+                                   <Icon as={CloseIcon} color={textColor} />
+                              </ModalCloseButton>
+                         </ModalHeader>
+                         <ModalBody>
+                              <FormControl pb="$5">
+                                   <FormControlLabel>
+                                        <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'title')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <Input>
+                                        <InputField id="title" onChangeText={(text) => setTitle(text)} returnKeyType="next" defaultValue={title} color={textColor}/>
+                                   </Input>
                               </FormControl>
-                              <FormControl pb={5}>
-                                   <FormControl.Label>{getTermFromDictionary(language, 'description')}</FormControl.Label>
-                                   <TextArea id="description" onChangeText={(text) => setDescription(text)} defaultValue={description} returnKeyType="next" />
+                              <FormControl pb="$5">
+                                   <FormControlLabel>
+                                        <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'description')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <Textarea id="description" onChangeText={(text) => setDescription(text)} defaultValue={description} returnKeyType="next"><TextareaInput color={textColor}/></Textarea>
                               </FormControl>
                               <FormControl>
-                                   <FormControl.Label>{getTermFromDictionary(language, 'access')}</FormControl.Label>
-                                   <Radio.Group
+                                   <FormControlLabel>
+                                        <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'access')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <RadioGroup
                                         name="access"
                                         value={isPublic}
                                         onChange={(nextValue) => {
                                              setPublic(nextValue);
                                         }}>
-                                        <Stack direction="row" alignItems="center" space={4} w="75%" maxW="300px">
-                                             <Radio value={false} my={1}>
-                                                  {getTermFromDictionary(language, 'private')}
+                                        <HStack direction="row" alignItems="center" space="md" w="75%" maxW="300px">
+                                             <Radio value={false} my="$1">
+                                                  <RadioIndicator mr="$2">
+                                                       <RadioIcon as={CircleIcon} strokeWidth={1} />
+                                                  </RadioIndicator>
+                                                  <RadioLabel color={textColor}>{getTermFromDictionary(language, 'private')}</RadioLabel>
                                              </Radio>
-                                             <Radio value={true} my={1}>
-                                                  {getTermFromDictionary(language, 'public')}
+                                             <Radio value={true} my="$1">
+                                                  <RadioIndicator mr="$2">
+                                                       <RadioIcon as={CircleIcon} strokeWidth={1} />
+                                                  </RadioIndicator>
+                                                  <RadioLabel color={textColor}>{getTermFromDictionary(language, 'public')}</RadioLabel>
                                              </Radio>
-                                        </Stack>
-                                   </Radio.Group>
+                                        </HStack>
+                                   </RadioGroup>
                               </FormControl>
-                         </Modal.Body>
-                         <Modal.Footer>
-                              <Button.Group>
-                                   <Button variant="outline" onPress={toggle}>
-                                        {getTermFromDictionary(language, 'close_window')}
+                         </ModalBody>
+                         <ModalFooter>
+                              <ButtonGroup>
+                                   <Button variant="outline" onPress={toggle} borderColor={theme['colors']['primary']['500']}>
+                                        <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'close_window')}</ButtonText>
                                    </Button>
                                    <Button
+                                        bgColor={theme['colors']['primary']['500']}
                                         isLoading={loading}
                                         isLoadingText={getTermFromDictionary(language, 'creating_list', true)}
                                         onPress={async () => {
@@ -91,11 +139,11 @@ const CreateList = (props) => {
                                                   popAlert(getTermFromDictionary(language, 'list_created'), res.message, status);
                                              });
                                         }}>
-                                        {getTermFromDictionary(language, 'create_list')}
+                                        <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_list')}</ButtonText>
                                    </Button>
-                              </Button.Group>
-                         </Modal.Footer>
-                    </Modal.Content>
+                              </ButtonGroup>
+                         </ModalFooter>
+                    </ModalContent>
                </Modal>
           </Center>
      );
