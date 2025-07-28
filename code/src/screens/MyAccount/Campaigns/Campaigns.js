@@ -11,6 +11,8 @@ import { filter } from 'lodash';
 import { ChevronDownIcon, ChevronUpIcon } from 'native-base';
 import { Image } from 'expo-image';
 import { setCurrentClient } from '@sentry/react-native';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 
 
 
@@ -197,6 +199,22 @@ export const MyCampaigns = () => {
 		onClose();
 	};
 
+	const handleShareOnSocial = async (imageUrl) => {
+		const fileUri = FileSystem.documentDirectory + 'shared.jpg';
+
+		try {
+			const download = await FileSystem.downloadAsync(imageUrl, fileUri);
+		
+			if (!(await Sharing.isAvailableAsync())) {
+			  console.error('Sharing is not available on this device');
+			  return;
+			}
+		
+			await Sharing.shareAsync(download.uri);
+		  } catch (err) {
+			console.error('Sharing failed:', err);
+		  }
+	}
 
 
 
@@ -242,6 +260,10 @@ export const MyCampaigns = () => {
 							contentFit="contain"
 							style={{ width: 100, height: 100 }}
 							/>
+
+							{(item.campaignRewardGiven || (item.awardAutomatically && item.campaignIsComplete))  && (
+								<Text  color="gray.500" onPress={() => handleShareOnSocial(campaignImageUrl)}>Share on Social Media</Text>
+							)}
 							
 						</>
 					)}
@@ -293,12 +315,15 @@ export const MyCampaigns = () => {
 
 												)}
 												{milestone.rewardType == 1 && milestone.rewardExists == 1 && milestone.rewardImage && (
+													<>
 													<Image
 													source={{ uri: imageUrl }}
 													contentFit="contain"
 													style={{ width: 100, height: 100 }}
 													alt={ milestone.rewardName }
 													/>
+													{(milestone.milestoneRewardGiven || (milestone.awardAutomatically && milestone.milestoneIsComplete)) && (<Text color="gray.500" onPress={() => handleShareOnSocial(imageUrl)}>Share on Social Media</Text>)}
+													</>
 												)}
 											</Box>
 
@@ -339,12 +364,15 @@ export const MyCampaigns = () => {
 
 												)}
 												{activity.rewardType == 1 && activity.rewardExists == 1 && activity.rewardImage && (
+													<>
 													<Image
 													source={{ uri: extraImageUrl }}
 													contentFit="contain"
 													style={{ width: 100, height: 100 }}
 													alt={ activity.rewardName }
 													/>
+													{(activity.rewardGiven || (activity.awardAutomatically && activity.extraCreditActivityComplete)) && (<Text color="gray.500" onPress={() => handleShareOnSocial(extraImageUrl)}>Share on Social Media</Text>)}
+													</>
 												)}
 											</Box>
 										</HStack>
