@@ -1,6 +1,6 @@
 import 'expo-dev-client';
 import { config } from '@gluestack-ui/config';
-import { GluestackUIProvider, useColorMode } from '@gluestack-ui/themed-native-base';
+import { GluestackUIProvider } from '@gluestack-ui/themed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NativeBaseProvider, StatusBar } from 'native-base';
@@ -60,8 +60,6 @@ export default function AppContainer() {
      const [colorMode, setColorMode] = React.useState(null);
      const { mode, updateColorMode, updateTheme } = React.useContext(ThemeContext);
      const [statusBarColor, setStatusBarColor] = React.useState('light-content');
-
-     const glueColorMode = useColorMode();
 
      logDebugMessage("2 Initial setup done");
 

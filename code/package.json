@@ -13,7 +13,6 @@
     "@gluestack-style/react": "^1.0.57",
     "@gluestack-ui/config": "^1.1.20",
     "@gluestack-ui/themed": "^1.1.73",
-    "@gluestack-ui/themed-native-base": "^0.1.108",
     "@react-aria/ssr": "^3.9.2",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
