@@ -46,7 +46,16 @@ export function logErrorMessage(message) {
 }
 
 function logMessage(type, message) {
-     if (typeof message === "object") {
+     if (message instanceof Error) {
+          const errorLog = {
+              name: message.name,
+              message: message.message,
+              stack: message.stack,
+              // Add other relevant properties if available
+          };
+
+          console.error(type + " --> " + JSON.stringify(errorLog, null, 2));
+     }else if (typeof message === "object") {
           console.log(type + " --> " + JSON.stringify(message));
      }else if (message === null) {
           console.log(type + " " + null);

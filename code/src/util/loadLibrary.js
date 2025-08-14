@@ -297,7 +297,7 @@ export async function getBrowseCategories(libraryUrl, discoveryVersion, limit = 
           response = await api.post('/SearchAPI?method=getAppActiveBrowseCategories&includeSubCategories=true', postBody);
           //console.log(response);
           if (response.status === 403) {
-               await RemoveData().then((res) => {
+               await RemoveData(null, null).then((res) => {
                     console.log('Session ended.');
                });
           }

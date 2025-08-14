@@ -1,18 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import React from 'react';
+import { useNavigation } from '@react-navigation/native';
 
 // custom components and helper files
 import { LOGIN_DATA } from './globals';
 import { LIBRARY } from './loadLibrary';
 import { PATRON } from './loadPatron';
 import { BrowseCategoryContext, LibraryBranchContext, LibrarySystemContext, UserContext } from '../context/initialContext';
-
+import { logDebugMessage, logInfoMessage, logWarnMessage, logErrorMessage } from './logging.js';
 /**
  * Logout the user and clean up data
  **/
-export async function RemoveData() {
+export async function RemoveData(queryClient, updateUser) {
      try {
+          logDebugMessage("Removing Data in secure storage");
           SecureStore.deleteItemAsync('patronName');
           SecureStore.deleteItemAsync('library');
           SecureStore.deleteItemAsync('libraryName');
@@ -25,15 +27,19 @@ export async function RemoveData() {
           SecureStore.deleteItemAsync('userToken');
           SecureStore.deleteItemAsync('logo');
           SecureStore.deleteItemAsync('favicon');
+          logDebugMessage("Removing Data in async storage");
           await AsyncStorage.removeItem('@userToken');
           await AsyncStorage.removeItem('@patronProfile');
           await AsyncStorage.removeItem('@libraryInfo');
           await AsyncStorage.removeItem('@locationInfo');
           await AsyncStorage.removeItem('@pathUrl');
+          logDebugMessage("Invalidating Queries");
      } catch (e) {
-          console.log(e);
+          logErrorMessage("Error clearing storage");
+          logErrorMessage(e);
      }
 
+     logDebugMessage("Clearing Context information");
      LIBRARY.url = null;
      LIBRARY.name = null;
      LIBRARY.favicon = null;
@@ -64,6 +70,7 @@ export async function RemoveData() {
      PATRON.coords.long = 0;
      PATRON.linkedAccounts = [];
      PATRON.holds = [];
+     PATRON.checkouts = [];
      LOGIN_DATA.showSelectLibrary = true;
      LOGIN_DATA.runGreenhouse = true;
      LOGIN_DATA.num = 0;
@@ -72,5 +79,24 @@ export async function RemoveData() {
      LOGIN_DATA.hasPendingChanges = false;
      LOGIN_DATA.loadedInitialData = false;
      LOGIN_DATA.themeSaved = false;
-     console.log('Storage data cleansed.');
+
+     try {
+          if (queryClient !== null) {
+               queryClient.invalidateQueries();
+               logDebugMessage("Invalidated all queries");
+          }
+     } catch (e) {
+          logErrorMessage("Error invalidating all queries");
+          logErrorMessage(e);
+     }
+     try {
+          if (updateUser !== null) {
+               updateUser({});
+          }
+     } catch (e) {
+          logErrorMessage("Error clearing user");
+          logErrorMessage(e);
+     }
+
+     logDebugMessage('Storage data cleansed.');
 }

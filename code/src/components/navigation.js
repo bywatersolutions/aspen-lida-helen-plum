@@ -28,6 +28,8 @@ import { RemoveData } from '../util/logout';
 import LibraryCardScanner from './LibraryCardScanner';
 import TitleWithLogo from '../components/TitleWithLogo'
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { logDebugMessage, logInfoMessage, logWarnMessage, logErrorMessage } from '../util/logging.js';
 
 const prefix = Linking.createURL('/');
@@ -105,6 +107,7 @@ export function App() {
                background: screenBackgroundColor,
           },
      };
+     const queryClient = useQueryClient();
      const [state, dispatch] = React.useReducer(
           (prevState, action) => {
                switch (action.type) {
@@ -206,14 +209,14 @@ export function App() {
                               } else {
                                    logWarnMessage('Connection failed, logging out.');
                                    userToken = null;
-                                   await RemoveData().then((res) => {
+                                   await RemoveData(queryClient, updateUser).then((res) => {
                                         dispatch({ type: 'SIGN_OUT' });
                                    });
                               }
                          });
                     } else {
                          logWarnMessage('No cached library url, logging out.');
-                         await RemoveData().then((res) => {
+                         await RemoveData(queryClient, updateUser).then((res) => {
                               dispatch({ type: 'SIGN_OUT' });
                          });
                     }
@@ -242,9 +245,7 @@ export function App() {
                     });
                },
                signOut: async () => {
-                    await RemoveData().then((res) => {
-                         //queryClient.invalidateQueries({});
-                         //updateUser([]);
+                    await RemoveData(queryClient, updateUser).then((res) => {
                          dispatch({ type: 'SIGN_OUT' });
                     });
                     logDebugMessage('Session ended.');
@@ -259,6 +260,7 @@ export function App() {
      }
 
      const { language } = React.useContext(LanguageContext);
+     const {updateUser} = React.useContext(UserContext);
 
      return (
           <AuthContext.Provider value={authContext}>
