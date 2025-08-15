@@ -258,31 +258,34 @@ export const MyCampaigns = () => {
 		);
 	};
 
-	const RewardDisplay = ({ item, imageUrl, type = 'campaign' }) => {
+	const RewardDisplay = ({ item, imageUrl, type = 'campaign'}) => {
 		const displayName = item.displayName === 1;
 		let hasImage;
 		let actualImageUrl = imageUrl;
+		const isDigitalReward = item.rewardType === 1;
 
 		// Check if we should show placeholder
-		if (item.isPlaceholderImage) {	
-			if (item.useTplPlaceholder) {
-				return (
-				<VStack space="sm">
-				<Image
-					source={PlaceholderImg}
-					style={{ width: 100, height: 100 }}
-				/>
-			</VStack>
-				);
-			}
-			// Use the placeholder image URL instead
-			actualImageUrl = buildImageUrl(item.badgeImage);
-			hasImage = true; 
-		} else {
-			if (type === 'campaign') {
-				hasImage = item.rewardType === 1 && item.rewardExists && item.badgeImage;
+		if (isDigitalReward) {
+			if (item.isPlaceholderImage) {	
+				if (item.useTplPlaceholder) {
+					return (
+					<VStack space="sm">
+					<Image
+						source={PlaceholderImg}
+						style={{ width: 100, height: 100 }}
+					/>
+				</VStack>
+					);
+				}
+				// Use the placeholder image URL instead
+				actualImageUrl = buildImageUrl(item.badgeImage);
+				hasImage = true; 
 			} else {
-				hasImage = item.rewardType === 1 && item.rewardExists && item.rewardImage;
+				if (type === 'campaign') {
+					hasImage = item.rewardExists && item.badgeImage;
+				} else {
+					hasImage = item.rewardExists && item.rewardImage;
+				}
 			}
 		}
 
@@ -291,7 +294,7 @@ export const MyCampaigns = () => {
 			? (item.campaignRewardGiven || (item.awardAutomatically && item.campaignIsComplete))
 			: type === 'milestone'
 			? (item.milestoneRewardGiven || (item.awardAutomatically && item.milestoneIsComplete))
-			: (item.rewardGiven || (item.awardAutomatically && item.extraCreditActivityComplete));
+			: (item.rewardGiven || (item.awardAutomatically && item.isComplete));
 
 		return (
 			<Box flex={type === 'campaign' ? 3 : 1}>
@@ -338,12 +341,10 @@ export const MyCampaigns = () => {
 				return false;
 			}
 
-			if (type === 'milestone') {
-				return item.milestoneType === 'manual' && item.allowPatronProgressInput;
-			}
-			if (type === 'activity') {
-				return item.allowPatronProgressInput;
-			}
+			if (item.allowPatronProgressInput){
+				return true;
+			} 
+
 			return false;
 		};
 
