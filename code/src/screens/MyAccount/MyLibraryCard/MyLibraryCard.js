@@ -5,7 +5,7 @@ import * as Brightness from 'expo-brightness';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import _ from 'lodash';
 import moment from 'moment';
-import { Box, Button, ButtonText, ButtonIcon, Center, HStack, VStack, Icon, Image, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Text, Heading, ModalBackdrop, CloseIcon, ModalCloseButton } from '@gluestack-ui/themed';
+import { Box, Button, ButtonText, ButtonIcon, Center, HStack, VStack, Icon, Image, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Text, Heading, ModalBackdrop, CloseIcon, ModalCloseButton, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@gluestack-ui/themed';
 import React from 'react';
 import { Dimensions } from 'react-native';
 import Barcode from 'react-native-barcode-expo';
@@ -23,30 +23,23 @@ import { formatDiscoveryVersion } from '../../../util/loadLibrary';
 export const MyLibraryCard = () => {
      const queryClient = useQueryClient();
      const navigation = useNavigation();
-     const [isLoading, setLoading] = React.useState(true);
      const [shouldRequestPermissions, setShouldRequestPermissions] = React.useState(false);
      const [previousBrightness, setPreviousBrightness] = React.useState();
      const [brightnessMode, setBrightnessMode] = React.useState(1);
      const [isLandscape, setIsLandscape] = React.useState(false);
-     const { user, accounts, updateLinkedAccounts, cards, updateLibraryCards } = React.useContext(UserContext);
-     //const [numCards, setNumCards] = React.useState(_.size(cards) ?? 1);
+     const [showDrawer, setShowDrawer] = React.useState(false);
+     const [currentCardIndex, setCurrentCardIndex] = React.useState(0);
+     const [showBarcodeModal, setShowBarcodeModal] = React.useState(false);
+     const [selectedCard, setSelectedCard] = React.useState(null);
+     const progressValue = useSharedValue(0);
+     const carouselRef = React.useRef();
+     const hasOpenModalRef = React.useRef(false);
+     const { user, accounts, updateLinkedAccounts, cards, updateLibraryCards} = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
      const { language } = React.useContext(LanguageContext);
      const { theme } = React.useContext(ThemeContext);
 
      let autoRotate = library.generalSettings?.autoRotateCard ?? 0;
-
-     /*     async function changeScreenOrientation(isLandscape) {
-	 console.log("changeScreenOrientation > " + isLandscape);
-	 await ScreenOrientation.unlockAsync().then(async result => {
-	 if (isLandscape) {
-	 await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_LEFT);
-	 } else {
-	 await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-	 }
-	 }
-	 )
-	 } */
 
      useQuery(['linked_accounts', user, cards, library.baseUrl, language], () => getLinkedAccounts(user, cards, library.barcodeStyle, library.baseUrl, language), {
           initialData: accounts,
@@ -101,11 +94,9 @@ export const MyLibraryCard = () => {
                     setIsLandscape(true);
                } else {
                     const result = await ScreenOrientation.getOrientationAsync();
-                    if (result === 5 || result === 6 || result === 7) {
-                         setIsLandscape(true);
-                    } else {
-                         setIsLandscape(false);
-                    }
+                    const isCurrentlyLandscape = result === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
+                                                 result === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
+                    setIsLandscape(isCurrentlyLandscape);
                }
           });
           const changeOrientation = ScreenOrientation.addOrientationChangeListener(({ orientationInfo, orientationLock }) => {
@@ -128,7 +119,7 @@ export const MyLibraryCard = () => {
                updateOrientation();
                changeOrientation.remove();
           };
-     }, [navigation]);
+     }, [navigation, autoRotate]);
 
      React.useEffect(() => {
           navigation.addListener('blur', () => {
@@ -150,17 +141,17 @@ export const MyLibraryCard = () => {
                          Brightness.setSystemBrightnessModeAsync(brightnessMode);
                          await updateScreenBrightnessStatus(false, library.baseUrl, language);
                     }
-                    console.log('navigationListener isLandscape > ' + isLandscape);
-                    if (isLandscape) {
-                         console.log('Restoring screen back to portrait mode');
-                         await ScreenOrientation.unlockAsync().then(async () => {
-                              await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-                         });
+                    // Only force rotation back to portrait if autoRotate was enabled.
+                    if (isLandscape && (autoRotate === '1' || autoRotate === 1)) {
+                         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                         await ScreenOrientation.unlockAsync();
+                    } else if (isLandscape) {
+                         await ScreenOrientation.unlockAsync();
                     }
                })();
           });
           return () => {};
-     }, [navigation, previousBrightness, isLandscape]);
+     }, [navigation, previousBrightness, isLandscape, autoRotate]);
 
      if (shouldRequestPermissions) {
           return <PermissionsPrompt promptTitle="permissions_screen_brightness_title" promptBody="permissions_screen_brightness_body" setShouldRequestPermissions={setShouldRequestPermissions} updateStatus={updateStatus} />;
@@ -177,62 +168,137 @@ export const MyLibraryCard = () => {
           shouldShowAlternateLibraryCard = false;
      }
 
-     /* useFocusEffect(
-	 React.useCallback(() => {
-	 console.log("numCards listener > " + numCards);
-	 console.log("isLandscape listener > " + isLandscape);
-	 if(numCards <= 1 && !isLandscape) {
-	 toggleOrientation();
-	 }
+     const openBarcodeModal = (card) => {
+          setSelectedCard(card);
+          setShowBarcodeModal(true);
+          if (hasOpenModalRef) {
+               hasOpenModalRef.current = true;
+          }
+     };
 
-	 if(numCards > 1 && isLandscape) {
-	 toggleOrientation();
-	 }
-	 return () => {};
-	 }, [numCards])
-	 ) */
+     const closeBarcodeModal = async () => {
+          setShowBarcodeModal(false);
+          setSelectedCard(null);
+          if (hasOpenModalRef) {
+               hasOpenModalRef.current = false;
+          }
+          await ScreenOrientation.unlockAsync();
+     };
 
-     /*     const toggleOrientation = () => {
-	 setIsLandscape(!isLandscape)
-	 changeScreenOrientation(!isLandscape)
-	 } */
+     const { textColor, colorMode } = React.useContext(ThemeContext);
+     const drawerBg = colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['800'];
 
-     /*if (isLoading) {
-	 return loadingSpinner();
-	 }*/
-
-     //MaterialCommunityIcons = phone-rotate-landscape
      return (
           <>
-               <CardCarousel cards={cards} orientation={isLandscape} />
-               {shouldShowAlternateLibraryCard ? (
-                    <Center mb="$3">
-                         <Button
-                              size="md"
-                              bgColor={theme['colors']['secondary']['500']}
-                              onPress={() => {
-                                   navigateStack('LibraryCardTab', 'MyAlternateLibraryCard', {
-                                        prevRoute: 'MyLibraryCard',
-                                        hasPendingChanges: false,
-                                   });
-                              }}>
-                              <ButtonText color={theme['colors']['secondary']['500-text']}>{getTermFromDictionary(language, 'manage_alternate_library_card')}</ButtonText>
-                         </Button>
-                    </Center>
-               ) : null}
+               <VStack flex={1} justifyContent={!isLandscape ? "space-between" : "flex-start"}>
+                    <Box flex={1} justifyContent={!isLandscape ? "center" : "flex-start"}>
+                         <CardCarousel
+                              cards={cards}
+                              orientation={isLandscape}
+                              currentIndex={currentCardIndex}
+                              setCurrentIndex={setCurrentCardIndex}
+                              progressValue={progressValue}
+                              carouselRef={carouselRef}
+                              openBarcodeModal={openBarcodeModal}
+                              hasOpenModalRef={hasOpenModalRef}
+                         />
+                    </Box>
+
+                    {isLandscape && cards.length > 1 && (
+                         <Box position="absolute" bottom={0} left={0} right={0} alignItems="center" pb="$2">
+                              <Button variant="link" onPress={() => setShowDrawer(true)} size="sm">
+                                   <ButtonIcon as={MaterialCommunityIcons} name="chevron-up" size="xl" color={textColor} />
+                              </Button>
+                         </Box>
+                    )}
+
+                    {!isLandscape && shouldShowAlternateLibraryCard && (
+                         <Box pb="$5">
+                              <Center>
+                                   <Button
+                                        size="md"
+                                        bgColor={theme['colors']['secondary']['500']}
+                                        onPress={() => {
+                                             navigateStack('LibraryCardTab', 'MyAlternateLibraryCard', {
+                                                  prevRoute: 'MyLibraryCard',
+                                                  hasPendingChanges: false,
+                                             });
+                                        }}>
+                                        <ButtonText color={theme['colors']['secondary']['500-text']}>{getTermFromDictionary(language, 'manage_alternate_library_card')}</ButtonText>
+                                   </Button>
+                              </Center>
+                         </Box>
+                    )}
+               </VStack>
+
+                    <Actionsheet isOpen={showDrawer} onClose={() => setShowDrawer(false)}>
+                         <ActionsheetBackdrop />
+                         <ActionsheetContent bgColor={drawerBg}>
+                              <ActionsheetDragIndicatorWrapper>
+                                   <ActionsheetDragIndicator bgColor={textColor} />
+                              </ActionsheetDragIndicatorWrapper>
+                              <VStack space="md" w="$full" p="$4">
+                                   <Box>
+                                        <Text fontSize="$sm" color={textColor} mb="$2">{getTermFromDictionary(language, 'select_card')}</Text>
+                                        <Box flexDirection="row" flexWrap="wrap" justifyContent="center">
+                                             {cards.map((card, index) => (
+                                                  <Button
+                                                       key={index}
+                                                       size="sm"
+                                                       mr="$1"
+                                                       mb="$1"
+                                                       bgColor={index === currentCardIndex ? theme['colors']['tertiary']['500'] : '$none'}
+                                                       borderColor={index === currentCardIndex ? 'transparent' : theme['colors']['tertiary']['500']}
+                                                       borderWidth={index === currentCardIndex ? 0 : 1}
+                                                       variant={index === currentCardIndex ? 'solid' : 'outline'}
+                                                       onPress={() => {
+                                                            carouselRef.current?.scrollTo({ index: index, animated: false });
+                                                            setCurrentCardIndex(index);
+                                                            setShowDrawer(false);
+                                                       }}>
+                                                       <ButtonText color={index === currentCardIndex ? theme['colors']['tertiary']['500-text'] : textColor}>
+                                                            {card.displayName}
+                                                       </ButtonText>
+                                                  </Button>
+                                             ))}
+                                        </Box>
+                                   </Box>
+                                   {shouldShowAlternateLibraryCard && (
+                                        <Box mt="$2">
+                                             <Button
+                                                  size="md"
+                                                  bgColor={theme['colors']['secondary']['500']}
+                                                  onPress={() => {
+                                                       setShowDrawer(false);
+                                                       navigateStack('LibraryCardTab', 'MyAlternateLibraryCard', {
+                                                            prevRoute: 'MyLibraryCard',
+                                                            hasPendingChanges: false,
+                                                       });
+                                                  }}>
+                                                  <ButtonText color={theme['colors']['secondary']['500-text']}>
+                                                       {getTermFromDictionary(language, 'manage_alternate_library_card')}
+                                                  </ButtonText>
+                                             </Button>
+                                        </Box>
+                                   )}
+                              </VStack>
+                         </ActionsheetContent>
+                    </Actionsheet>
+
+               {selectedCard && <BarcodeModal card={selectedCard} showModal={showBarcodeModal} closeModal={closeBarcodeModal} language={language} />}
           </>
      );
 };
 
 const CreateLibraryCard = (data) => {
      const card = data.card ?? [];
-     const { numCards } = data ?? 0;
+     const { numCards, hasOpenModalRef, openBarcodeModal } = data ?? 0;
 
      const [expirationText, setExpirationText] = React.useState('');
      const { theme, textColor, colorMode } = React.useContext(ThemeContext);
 
      const { library } = React.useContext(LibrarySystemContext);
-     const { language } = React.useContext(LanguageContext);
+     const language = data.language || React.useContext(LanguageContext).language;
 
      let barcodeStyle;
      if (!_.isUndefined(card.barcodeStyle) && !_.isNull(card.barcodeStyle)) {
@@ -346,7 +412,24 @@ const CreateLibraryCard = (data) => {
                ) : null}
                <Center>
                     {showExpirationDate && expirationDate && !neverExpires && numCards > 1 ? <Text color={textColor}>{expirationText}</Text> : null}
-                    {numCards > 1 ? <OpenBarcode barcodeValue={barcodeValue} barcodeFormat={barcodeStyle} handleBarcodeError={handleBarcodeError} language={language} /> : <><Barcode value={barcodeValue} format={barcodeStyle} background={theme['colors']['warmGray']['200']} onError={handleBarcodeError} /><Text color={textColor} fontSize="$xl" textAlign="center">{barcodeValue}</Text></>}
+                    {numCards > 1 ? (
+                         <Button variant="link" onPress={() => openBarcodeModal && openBarcodeModal(card)}>
+                              <ButtonIcon color={theme['colors']['primary']['500']} as={MaterialCommunityIcons} name="barcode-scan" size="lg" mr="$1" />
+                              <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'open_barcode')}</ButtonText>
+                         </Button>
+                    ) : (
+                         <VStack alignItems="center" space="sm">
+                              <Box bg={theme['colors']['warmGray']['200']} p="$3" borderRadius="$sm">
+                                   <Barcode
+                                        value={barcodeValue}
+                                        format={barcodeStyle}
+                                        background={theme['colors']['warmGray']['200']}
+                                        onError={handleBarcodeError}
+                                   />
+                              </Box>
+                              <Text color={textColor} fontSize="$xl" textAlign="center">{barcodeValue}</Text>
+                         </VStack>
+                    )}
                     {showExpirationDate && expirationDate && !neverExpires && numCards === 1 ? (
                          <Text color={textColor} fontSize="$sm" pt="$2">
                               {expirationText}
@@ -359,13 +442,20 @@ const CreateLibraryCard = (data) => {
 
 const CardCarousel = (data) => {
      const { theme, textColor } = React.useContext(ThemeContext);
-     const [currentIndex, setCurrentIndex] = React.useState(0);
+     const { language } = React.useContext(LanguageContext);
+     const [internalIndex, setInternalIndex] = React.useState(0);
      const cards = _.sortBy(data.cards, ['key']);
      const isVertical = data.orientation;
      const toggleOrientation = data.toggleOrientation;
+     const hasOpenModalRef = data.hasOpenModalRef;
+     const openBarcodeModal = data.openBarcodeModal;
      const screenWidth = Dimensions.get('window').width;
-     const progressValue = useSharedValue(0);
-     const ref = React.useRef();
+
+     // Use external state if provided (for drawer), otherwise use internal state.
+     const currentIndex = data.currentIndex !== undefined ? data.currentIndex : internalIndex;
+     const setCurrentIndex = data.setCurrentIndex || setInternalIndex;
+     const progressValue = data.progressValue || useSharedValue(0);
+     const ref = data.carouselRef || React.useRef();
 
      let baseOptions = {
           vertical: false,
@@ -413,9 +503,10 @@ const CardCarousel = (data) => {
                     borderWidth={index === currentIndex ? 0 : 1}
                     variant={index === currentIndex ? 'solid' : 'outline'}
                     onPress={() => {
-                         ref.current.scrollTo({
+                         setCurrentIndex(index);
+                         ref.current?.scrollTo({
                               index: index,
-                              animated: true,
+                              animated: false,
                          });
                     }}>
                     <ButtonText color={index === currentIndex ? theme['colors']['tertiary']['500-text'] : textColor}>{card.displayName}</ButtonText>
@@ -433,7 +524,7 @@ const CardCarousel = (data) => {
                     style={{
                          transform: [{ scale: 0.9 }],
                     }}>
-                    <CreateLibraryCard key={0} card={card} numCards={_.size(cards)} />
+                    <CreateLibraryCard key={0} card={card} numCards={_.size(cards)} language={language} hasOpenModalRef={hasOpenModalRef} openBarcodeModal={openBarcodeModal} />
                </Box>
           );
      }
@@ -443,18 +534,27 @@ const CardCarousel = (data) => {
                <Carousel
                     {...baseOptions}
                     ref={ref}
+                    defaultIndex={currentIndex}
                     pagingEnabled={true}
                     snapEnabled={true}
                     autoPlay={false}
                     mode="parallax"
-                    onProgressChange={(_, absoluteProgress) => (progressValue.value = absoluteProgress)}
+                    onProgressChange={(_, absoluteProgress) => {
+                         progressValue.value = absoluteProgress;
+                         const totalCards = cards.length;
+                         let newIndex = Math.round(absoluteProgress) % totalCards;
+                         if (newIndex < 0) newIndex = totalCards + newIndex;
+                         if (newIndex !== currentIndex && newIndex >= 0 && newIndex < totalCards) {
+                              setCurrentIndex(newIndex);
+                         }
+                    }}
                     onSnapToItem={(index) => setCurrentIndex(index)}
                     modeConfig={{
                          parallaxScrollingScale: 0.9,
                          parallaxScrollingOffset: 50,
                     }}
                     data={cards}
-                    renderItem={({ item, index }) => <CreateLibraryCard key={index} card={item} numCards={_.size(cards)} />}
+                    renderItem={({ item, index }) => <CreateLibraryCard key={index} card={item} numCards={_.size(cards)} language={language} hasOpenModalRef={hasOpenModalRef} openBarcodeModal={openBarcodeModal} />}
                />
                {!!progressValue && (
                     <Box flexDirection="row" flexWrap="wrap" alignContent="center" alignSelf="center" maxWidth="100%" justifyContent="center">
@@ -467,30 +567,149 @@ const CardCarousel = (data) => {
      );
 };
 
-const OpenBarcode = (data) => {
+const BarcodeModal = ({ card, showModal, closeModal, language }) => {
      const { theme } = React.useContext(ThemeContext);
-     const { barcodeValue, barcodeFormat, handleBarcodeError, language } = data;
-     const [showModal, setShowModal] = React.useState(false);
+     const { library } = React.useContext(LibrarySystemContext);
+     const [orientation, setOrientation] = React.useState('portrait');
+     const [screenDimensions, setScreenDimensions] = React.useState(Dimensions.get('window'));
+     const [manuallyRotated, setManuallyRotated] = React.useState(false);
+     const [showRotateWarning, setShowRotateWarning] = React.useState(false);
+     const barcodeWidthRef = React.useRef(null);
 
-     const toggleModal = () => {
-          setShowModal(!showModal);
+     let barcodeStyle;
+     if (!_.isUndefined(card.barcodeStyle) && !_.isNull(card.barcodeStyle)) {
+          barcodeStyle = _.toString(card.barcodeStyle);
+     } else {
+          barcodeStyle = _.toString(library.barcodeStyle);
+     }
+
+     let barcodeValue = 'UNKNOWN';
+     if (!_.isUndefined(card.ils_barcode)) {
+          barcodeValue = card.ils_barcode;
+     } else if (!_.isUndefined(card.cat_username)) {
+          barcodeValue = card.cat_username;
+     }
+
+     const handleBarcodeError = () => {
+          barcodeStyle = 'INVALID';
+     };
+
+     React.useEffect(() => {
+          const subscription = Dimensions.addEventListener('change', ({ window }) => {
+               if (showModal) {
+                    setScreenDimensions(window);
+                    const newOrientation = window.width > window.height ? 'landscape' : 'portrait';
+                    setOrientation(newOrientation);
+
+                    if (barcodeWidthRef.current) {
+                         const shouldShowWarning = evaluateBarcode(barcodeWidthRef.current, newOrientation, window);
+                         setShowRotateWarning(shouldShowWarning);
+                    }
+               }
+          });
+
+          return () => subscription?.remove();
+     }, [showModal]);
+
+     React.useEffect(() => {
+          if (showModal) {
+               setShowRotateWarning(false);
+               barcodeWidthRef.current = null;
+               setManuallyRotated(false);
+          }
+     }, [showModal]);
+
+     const isPortrait = orientation === 'portrait';
+
+     const evaluateBarcode = (width, currentOrientation, dimensions) => {
+          const modalPadding = 32; // ModalBody p="$4" (16px * 2 sides)
+          const centerPadding = 16; // Center p="$2" (8px * 2 sides)
+          const modalMargins = 32; // Modal itself has margins from screen edges
+          const edgeBuffer = 16; // Small buffer from modal content edges
+
+          const availableWidth = dimensions.width - modalPadding - centerPadding - modalMargins - edgeBuffer;
+          const isTooWide = width > availableWidth;
+          const shouldShowWarning = isTooWide && currentOrientation === 'portrait';
+
+          return shouldShowWarning;
+     };
+
+     const rotateToLandscape = async () => {
+          setManuallyRotated(true);
+          await ScreenOrientation.unlockAsync();
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_LEFT);
+     };
+
+     const rotateToPortrait = async () => {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+          setManuallyRotated(false);
+     };
+
+     const onBarcodeLayout = (event) => {
+          const { width } = event.nativeEvent.layout;
+          barcodeWidthRef.current = width;
+          // Only evaluate if this is the initial measurement; let orientation handler deal with changes.
+          if (!showRotateWarning || orientation === 'portrait') {
+               const shouldShowWarning = evaluateBarcode(width, orientation, screenDimensions);
+               setShowRotateWarning(shouldShowWarning);
+          }
      };
 
      return (
-          <Center>
-               <Button variant="link" onPress={() => toggleModal()}>
-                    <ButtonIcon color={theme['colors']['primary']['500']} as={MaterialCommunityIcons} name="barcode-scan" size="lg" mr="$1" />
-                    <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'open_barcode')}</ButtonText>
-               </Button>
-               <Modal isOpen={showModal} onClose={() => toggleModal()} size="xl">
+          <Modal isOpen={showModal} onClose={closeModal} size="xl">
                     <ModalBackdrop sx={{ opacity: 0.85 }} />
                     <ModalContent bgColor="white">
-                         <ModalBody bgColor="white">
-							  <Barcode value={barcodeValue} format={barcodeFormat} onError={handleBarcodeError} />
-                              <Center><Text fontSize="$xl" color="black">{barcodeValue}</Text></Center>
+                         <ModalBody bgColor="white" p="$4">
+                              {/* Always render barcode to measure it, but hide if showing warning. */}
+                              <Box style={{ opacity: showRotateWarning ? 0 : 1, position: showRotateWarning ? 'absolute' : 'relative' }}>
+                                   <Center p="$2">
+                                        <Box onLayout={onBarcodeLayout}>
+                                             <Barcode
+                                                  value={barcodeValue}
+                                                  format={barcodeStyle}
+                                                  onError={handleBarcodeError}
+                                             />
+                                        </Box>
+                                   </Center>
+                              </Box>
+
+                              {showRotateWarning && (
+                                   <VStack space="md" alignItems="center" p="$4">
+                                        <Text fontSize="$lg" textAlign="center" color="black">
+                                             {getTermFromDictionary(language, 'rotate_device_for_barcode')}
+                                        </Text>
+                                        <Button
+                                             size="md"
+                                             bgColor={theme['colors']['primary']['500']}
+                                             onPress={rotateToLandscape}
+                                             mt="$2">
+                                             <ButtonIcon as={MaterialCommunityIcons} name="phone-rotate-landscape" size="sm" mr="$2" />
+                                             <ButtonText color={theme['colors']['primary']['500-text']}>
+                                                  {getTermFromDictionary(language, 'rotate_to_landscape') || 'Rotate to Landscape'}
+                                             </ButtonText>
+                                        </Button>
+                                   </VStack>
+                              )}
+
+                              {!showRotateWarning && !isPortrait && manuallyRotated && (
+                                   <Center mt="$2" mb="$2">
+                                        <Button
+                                             size="md"
+                                             bgColor={theme['colors']['primary']['500']}
+                                             onPress={rotateToPortrait}>
+                                             <ButtonIcon as={MaterialCommunityIcons} name="phone-rotate-portrait" size="sm" mr="$2" />
+                                             <ButtonText color={theme['colors']['primary']['500-text']}>
+                                                  {getTermFromDictionary(language, 'rotate_to_portrait') || 'Rotate to Portrait'}
+                                             </ButtonText>
+                                        </Button>
+                                   </Center>
+                              )}
+
+                              <Center mt="$2">
+                                   <Text fontSize="$xl" color="black">{barcodeValue}</Text>
+                              </Center>
                          </ModalBody>
                     </ModalContent>
                </Modal>
-          </Center>
      );
 };

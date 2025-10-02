@@ -19,7 +19,7 @@ const SelfCheckOutStackNavigator = () => {
 
      let defaultRoute = 'SelfCheckOut';
      if (_.size(accounts) >= 1) {
-          defaultRoute = 'StartCheckoutSession';
+          defaultRoute = 'StartCheckOutSession';
      }
 
      const Stack = createNativeStackNavigator();
