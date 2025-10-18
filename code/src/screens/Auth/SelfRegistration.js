@@ -10,6 +10,8 @@ import { getSelfRegistrationForm, submitSelfRegistration } from '../../util/api/
 import { ThemeContext } from '../../context/initialContext';
 
 import { ScrollView, Box, Button, ButtonGroup, ButtonText, FormControl, FormControlHelper, FormControlHelperText, Icon, Input, Text, Select, SelectTrigger, SelectInput, SelectIcon, ChevronDownIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, CheckIcon, FormControlLabel, FormControlLabelText, InputField } from '@gluestack-ui/themed';
+import { logDebugMessage } from '../../util/logging';
+import { getErrorMessage } from '../../util/apiAuth';
 
 export const SelfRegistration = () => {
 	const {theme, textColor, colorMode} = React.useContext(ThemeContext);
@@ -23,24 +25,35 @@ export const SelfRegistration = () => {
 	const [values, setValues] = React.useState([]);
 	const [showResults, setShowResults] = React.useState(false);
 	const [results, setResults] = React.useState('');
-	const insets = useSafeAreaInsets();
+     const [hasError, setHasError] = React.useState(false);
+     const insets = useSafeAreaInsets();
 
 	React.useEffect(() => {
 		(async () => {
-			await getSelfRegistrationForm(libraryUrl).then((fields) => {
-				setFields(fields);
-				let object = {};
-				_.map(fields, function(section, index, collection) {
-					const properties = section.properties;
-					_.forEach(properties, function (field, key) {
-						let prop = field.property;
-						const property = {
-							[prop]: '',
-						};
-						_.merge(object, property);
-					});
-				});
-				setValues(object);
+			await getSelfRegistrationForm(libraryUrl).then((response) => {
+				if(response.ok) {
+                         const formFields = response.data.result ?? [];
+                         setFields(formFields);
+                         let object = {};
+                         _.map(formFields, function(section, index, collection) {
+                              const properties = section.properties;
+                              _.forEach(properties, function (field, key) {
+                                   let prop = field.property;
+                                   const property = {
+                                        [prop]: '',
+                                   };
+                                   _.merge(object, property);
+                              });
+                         });
+                         setValues(object);
+                    } else {
+                         logDebugMessage("Error loading fields for self registration");
+                         logDebugMessage(response);
+                         setIsSubmitting(false);
+                         const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+                         setResults(error.message);
+                         setHasError(true);
+                    }
 			});
 			setIsLoading(false);
 		})();
@@ -188,12 +201,22 @@ export const SelfRegistration = () => {
 	}
 
 	const handleSubmission = async () => {
-		await submitSelfRegistration(libraryUrl, valuesToSubmit).then((result) => {
-			setResults(result);
-			if(result) {
-				setShowResults(true);
-			}
-			setIsSubmitting(false);
+		await submitSelfRegistration(libraryUrl, valuesToSubmit).then((response) => {
+			if(response.ok) {
+                    setResults(response.data.result);
+                    if(response.data.result) {
+                         setShowResults(true);
+                    }
+                    setIsSubmitting(false);
+                    setHasError(false)
+               } else {
+                    logDebugMessage("Error initiating self registration");
+                    logDebugMessage(response);
+                    setIsSubmitting(false);
+                    const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+                    setResults(error.message);
+                    setHasError(true);
+               }
 		});
 	};
 
@@ -207,7 +230,7 @@ export const SelfRegistration = () => {
 						{!showResults ? (
 							<Text mb="$3" color={textColor}>{getTermFromDictionary('en', 'self_registration_message')}</Text>
 						) : null}
-						{showResults ? (
+						{showResults && !hasError ? (
 							<>
 								{results.success === true ? (
 									<Text mb="$3" color={textColor}>{getTermFromDictionary('en', 'self_registration_success')}</Text>
@@ -243,7 +266,19 @@ export const SelfRegistration = () => {
 									<ButtonText color={theme['colors']['secondary']['500']}>{getTermFromDictionary('en', 'close_window')}</ButtonText>
 								</Button>
 							</>
-						) : (
+						) : showResults && hasError ? (
+                                   <>
+                                        <Text mb="$3" color={textColor}>{results}</Text>
+                                        <Button borderColor={theme['colors']['secondary']['500']} variant="outline" onPress={() => {
+                                             navigation.goBack();
+                                             setShowResults(false);
+                                             setResults('');
+                                             setHasError(false);
+                                        }}>
+                                             <ButtonText color={theme['colors']['secondary']['500']}>{getTermFromDictionary('en', 'close_window')}</ButtonText>
+                                        </Button>
+                                   </>
+                              ) :  (
 							<>
 								{getFields()}
 								<ButtonGroup pt="$3" pb="$5">

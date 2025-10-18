@@ -27,6 +27,8 @@ import { createGlueTheme } from '../../themes/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { logDebugMessage } from '../../util/logging';
+import { getErrorMessage } from '../../util/apiAuth';
 
 export const LoginScreen = () => {
      const [isLoading, setIsLoading] = React.useState(true);
@@ -101,9 +103,15 @@ export const LoginScreen = () => {
                     });
 
                     if (_.includes(GLOBALS.slug, 'aspen-lida') && GLOBALS.slug !== 'aspen-lida-bws') {
-                         await fetchAllLibrariesFromGreenhouse().then((result) => {
-                              if (result.success) {
-                                   setAllLibraries(result.libraries);
+                         await fetchAllLibrariesFromGreenhouse().then((response) => {
+                              if(response.ok) {
+                                   const libraries = _.sortBy(response.data.libraries ?? [], ['name', 'librarySystem']);
+                                   setAllLibraries(libraries);
+                              } else {
+                                   setAllLibraries([]);
+                                   logDebugMessage("Error loading libraries from Greenhouse");
+                                   logDebugMessage(response);
+                                   getErrorMessage(response.code ?? 0, response.problem)
                               }
                          });
                     }

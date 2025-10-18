@@ -5,7 +5,6 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import _ from 'lodash';
 import {
-     WarningOutlineIcon,
      VStack,
      Icon,
      Center,
@@ -45,9 +44,10 @@ import {
      UserContext,
 } from '../../context/initialContext';
 import { getTermFromDictionary } from '../../translations/TranslationService';
-import { createAuthTokens, getHeaders } from '../../util/apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders } from '../../util/apiAuth';
 import { GLOBALS } from '../../util/globals';
 import { getBrowseCategories, getLibraryBranch, getLibrarySystem, getUserProfile } from '../../util/login';
+import { logDebugMessage, logInfoMessage } from '../../util/logging';
 
 export const ResetExpiredPin = (props) => {
      const [resetSuccessful, setResetSuccessful] = React.useState(false);
@@ -70,6 +70,7 @@ export const ResetExpiredPin = (props) => {
      const [pin, setPin] = React.useState('');
      const [pinConfirmed, setPinConfirmed] = React.useState('');
      const [errors, setErrors] = React.useState({});
+     const [hasError, setHasError] = React.useState(false);
 
      // show:hide data from password fields
      const [showPin, setShowPin] = React.useState(false);
@@ -121,20 +122,29 @@ export const ResetExpiredPin = (props) => {
      const updatePIN = async () => {
           if (validatePin() && validatePinConfirmed()) {
                await resetExpiredPin(pin, pinConfirmed, resetToken, url).then(async (result) => {
-                    if (result.success) {
-                         setResetMessage(result.message ?? 'Pin successfully reset.');
-                         setResetSuccessful(true);
-                         await setAsyncStorage();
-                         await setContext();
-                         signIn();
-                         setExpiredPin(false);
-                         setIsOpen(false);
+                    if(result.ok) {
+                         if (result.success) {
+                              setResetMessage(result.message ?? 'Pin successfully reset.');
+                              setResetSuccessful(true);
+                              await setAsyncStorage();
+                              await setContext();
+                              signIn();
+                              setExpiredPin(false);
+                              setIsOpen(false);
+                              setHasError(false);
+                         } else {
+                              popAlert(getTermFromDictionary('en', 'error'), result.message ?? 'Unable to update pin', 'error');
+                         }
                     } else {
-                         popAlert(getTermFromDictionary('en', 'error'), result.message ?? 'Unable to update pin', 'error');
+                         logDebugMessage("Error resetting expired pin");
+                         logDebugMessage(result);
+                         const error = getErrorMessage(result.code ?? 0, result.problem);
+                         setHasError(true);
+                         popAlert(error.title, error.message, 'error');
                     }
                });
           } else {
-               console.log(errors);
+               logInfoMessage(errors);
           }
      };
 
@@ -276,14 +286,5 @@ async function resetExpiredPin(pin1, pin2, token, url) {
           headers: getHeaders(true),
           auth: createAuthTokens(),
      });
-     const results = await discovery.post('/UserAPI?method=resetExpiredPin', postBody);
-     console.log(results);
-     if (results.ok) {
-          return results.data.result;
-     } else {
-          return {
-               success: false,
-               message: 'Unable to connect to library',
-          };
-     }
+     return await discovery.post('/UserAPI?method=resetExpiredPin', postBody);
 }

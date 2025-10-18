@@ -24,10 +24,11 @@ import React from 'react';
 import { loadingSpinner } from '../../components/loadingSpinner';
 import { LibrarySystemContext, ThemeContext } from '../../context/initialContext';
 import { getTermFromDictionary, getTranslationsWithValues } from '../../translations/TranslationService';
-import { createAuthTokens, getHeaders, postData, stripHTML } from '../../util/apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData, stripHTML } from '../../util/apiAuth';
 import { GLOBALS } from '../../util/globals';
 import { LIBRARY } from '../../util/loadLibrary';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { logDebugMessage } from '../../util/logging';
 
 export const ResetPassword = (props) => {
      const { library } = React.useContext(LibrarySystemContext)
@@ -174,18 +175,30 @@ const AspenResetPassword = (props) => {
 
      const [showResults, setShowResults] = React.useState(false);
      const [results, setResults] = React.useState('');
+     const [hasError, setHasError] = React.useState(false);
 
      const closeWindow = () => {
           setShowForgotPasswordModal(false);
           setIsProcessing(false);
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
      const initiateResetPassword = async () => {
           setIsProcessing(true);
-          await resetPassword(username, '', false, 'aspen', libraryUrl).then((data) => {
-               setResults(data);
-               setShowResults(true);
+          await resetPassword(username, '', false, 'aspen', libraryUrl).then((response) => {
+               if(response.ok) {
+                    setResults(response.data.result);
+                    setShowResults(true);
+                    setHasError(false);
+               } else {
+                    logDebugMessage("Error initiating reset password");
+                    logDebugMessage(response);
+                    setHasError(true);
+                    const error = getErrorMessage(response.code ?? 0, response.problem);
+                    setResults(error.message);
+                    setShowResults(true);
+               }
           });
           setIsProcessing(false);
      };
@@ -193,9 +206,10 @@ const AspenResetPassword = (props) => {
      const resetWindow = () => {
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
 
-     if (results && showResults) {
+     if (results && showResults && !hasError) {
           if (_.isEmpty(results.success) && results.error) {
                return (
                     <>
@@ -248,6 +262,23 @@ const AspenResetPassword = (props) => {
           }
      }
 
+     if(showResults && hasError) {
+          return (
+               <>
+                    <ModalBody>
+                         <Text color={textColor}>{stripHTML(results)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                         <ButtonGroup space="$2">
+                              <Button variant="link" onPress={closeWindow}>
+                                   <ButtonText color={textColor}>{getTermFromDictionary('en', 'cancel')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ModalFooter>
+               </>
+          );
+     }
+
      return (
           <>
                <ModalBody>
@@ -274,6 +305,7 @@ const AspenResetPassword = (props) => {
           </>
      );
 };
+
 const KohaResetPassword = (props) => {
      const { usernameLabel, setShowForgotPasswordModal, isProcessing, setIsProcessing, modalButtonLabel, resetBody, libraryUrl, textColor, theme, colorMode } = props;
      const [email, setEmail] = React.useState('');
@@ -284,18 +316,30 @@ const KohaResetPassword = (props) => {
 
      const [showResults, setShowResults] = React.useState(false);
      const [results, setResults] = React.useState('');
+     const [hasError, setHasError] = React.useState(false);
 
      const closeWindow = () => {
           setShowForgotPasswordModal(false);
           setIsProcessing(false);
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
      const initiateResetPassword = async () => {
           setIsProcessing(true);
-          await resetPassword(username, email, resend, 'koha', libraryUrl).then((data) => {
-               setResults(data);
-               setShowResults(true);
+          await resetPassword(username, email, resend, 'koha', libraryUrl).then((response) => {
+               if(response.ok) {
+                    setResults(response.data.result);
+                    setShowResults(true);
+                    setHasError(false);
+               } else {
+                    logDebugMessage("Error initiating reset password");
+                    logDebugMessage(response);
+                    setHasError(true);
+                    const error = getErrorMessage(response.code ?? 0, response.problem);
+                    setResults(error.message);
+                    setShowResults(true);
+               }
           });
           setIsProcessing(false);
      };
@@ -303,9 +347,10 @@ const KohaResetPassword = (props) => {
      const resetWindow = () => {
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
 
-     if (results && showResults) {
+     if (results && showResults && !hasError) {
           if (_.isEmpty(results.success) && results.error) {
                return (
                     <>
@@ -367,6 +412,23 @@ const KohaResetPassword = (props) => {
                     </>
                );
           }
+     }
+
+     if(showResults && hasError) {
+          return (
+               <>
+                    <ModalBody>
+                         <Text color={textColor}>{stripHTML(results)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                         <ButtonGroup space="$2">
+                              <Button variant="link" onPress={closeWindow}>
+                                   <ButtonText color={textColor}>{getTermFromDictionary('en', 'cancel')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ModalFooter>
+               </>
+          );
      }
 
      return (
@@ -406,18 +468,30 @@ const SirsiResetPassword = (props) => {
 
      const [showResults, setShowResults] = React.useState(false);
      const [results, setResults] = React.useState('');
+     const [hasError, setHasError] = React.useState(false);
 
      const closeWindow = () => {
           setShowForgotPasswordModal(false);
           setIsProcessing(false);
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
      const initiateResetPassword = async () => {
           setIsProcessing(true);
-          await resetPassword(username, '', false, 'sirsi', libraryUrl).then((data) => {
-               setResults(data);
-               setShowResults(true);
+          await resetPassword(username, '', false, 'sirsi', libraryUrl).then((response) => {
+               if(response.ok) {
+                    setResults(response.data.result);
+                    setShowResults(true);
+                    setHasError(false);
+               } else {
+                    logDebugMessage("Error initiating reset password");
+                    logDebugMessage(response);
+                    setHasError(true);
+                    const error = getErrorMessage(response.code ?? 0, response.problem);
+                    setResults(error.message);
+                    setShowResults(true);
+               }
           });
           setIsProcessing(false);
      };
@@ -425,9 +499,10 @@ const SirsiResetPassword = (props) => {
      const resetWindow = () => {
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
 
-     if (results && showResults) {
+     if (results && showResults && !hasError) {
           if (_.isEmpty(results.success) && results.error) {
                return (
                     <>
@@ -480,6 +555,23 @@ const SirsiResetPassword = (props) => {
           }
      }
 
+     if(showResults && hasError) {
+          return (
+               <>
+                    <ModalBody>
+                         <Text color={textColor}>{stripHTML(results)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                         <ButtonGroup space="$2">
+                              <Button variant="link" onPress={closeWindow}>
+                                   <ButtonText color={textColor}>{getTermFromDictionary('en', 'cancel')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ModalFooter>
+               </>
+          );
+     }
+
      return (
           <>
                <ModalBody>
@@ -515,18 +607,30 @@ const EvergreenResetPassword = (props) => {
 
      const [showResults, setShowResults] = React.useState(false);
      const [results, setResults] = React.useState('');
+     const [hasError, setHasError] = React.useState(false);
 
      const closeWindow = () => {
           setShowForgotPasswordModal(false);
           setIsProcessing(false);
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
      const initiateResetPassword = async () => {
           setIsProcessing(true);
-          await resetPassword(username, email, resend, 'evergreen', libraryUrl).then((data) => {
-               setResults(data);
-               setShowResults(true);
+          await resetPassword(username, email, resend, 'evergreen', libraryUrl).then((response) => {
+               if(response.ok) {
+                    setResults(response.data.result);
+                    setShowResults(true);
+                    setHasError(false);
+               } else {
+                    logDebugMessage("Error initiating reset password");
+                    logDebugMessage(response);
+                    setHasError(true);
+                    const error = getErrorMessage(response.code ?? 0, response.problem);
+                    setResults(error.message);
+                    setShowResults(true);
+               }
           });
           setIsProcessing(false);
      };
@@ -534,9 +638,10 @@ const EvergreenResetPassword = (props) => {
      const resetWindow = () => {
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
 
-     if (results && showResults) {
+     if (results && showResults && !hasError) {
           if (_.isEmpty(results.success) && results.error) {
                return (
                     <>
@@ -600,6 +705,23 @@ const EvergreenResetPassword = (props) => {
           }
      }
 
+     if(showResults && hasError) {
+          return (
+               <>
+                    <ModalBody>
+                         <Text color={textColor}>{stripHTML(results)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                         <ButtonGroup space="$2">
+                              <Button variant="link" onPress={closeWindow}>
+                                   <ButtonText color={textColor}>{getTermFromDictionary('en', 'cancel')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ModalFooter>
+               </>
+          );
+     }
+
      return (
           <>
                <ModalBody>
@@ -637,18 +759,30 @@ const SymphonyResetPassword = (props) => {
 
      const [showResults, setShowResults] = React.useState(false);
      const [results, setResults] = React.useState('');
+     const [hasError, setHasError] = React.useState(false);
 
      const closeWindow = () => {
           setShowForgotPasswordModal(false);
           setIsProcessing(false);
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
      const initiateResetPassword = async () => {
           setIsProcessing(true);
-          await resetPassword(username, '', false, 'symphony', libraryUrl).then((data) => {
-               setResults(data);
-               setShowResults(true);
+          await resetPassword(username, '', false, 'symphony', libraryUrl).then((response) => {
+               if(response.ok) {
+                    setResults(response.data.result);
+                    setShowResults(true);
+                    setHasError(false);
+               } else {
+                    logDebugMessage("Error initiating reset password");
+                    logDebugMessage(response);
+                    setHasError(true);
+                    const error = getErrorMessage(response.code ?? 0, response.problem);
+                    setResults(error.message);
+                    setShowResults(true);
+               }
           });
           setIsProcessing(false);
      };
@@ -656,9 +790,10 @@ const SymphonyResetPassword = (props) => {
      const resetWindow = () => {
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
 
-     if (results && showResults) {
+     if (results && showResults && !hasError) {
           if (_.isEmpty(results.success) && results.error) {
                return (
                     <>
@@ -711,6 +846,23 @@ const SymphonyResetPassword = (props) => {
           }
      }
 
+     if(showResults && hasError) {
+          return (
+               <>
+                    <ModalBody>
+                         <Text color={textColor}>{stripHTML(results)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                         <ButtonGroup space="$2">
+                              <Button variant="link" onPress={closeWindow}>
+                                   <ButtonText color={textColor}>{getTermFromDictionary('en', 'cancel')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ModalFooter>
+               </>
+          );
+     }
+
      return (
           <>
                <ModalBody>
@@ -742,18 +894,30 @@ const MillenniumResetPassword = (props) => {
 
      const [showResults, setShowResults] = React.useState(false);
      const [results, setResults] = React.useState('');
+     const [hasError, setHasError] = React.useState(false);
 
      const closeWindow = () => {
           setShowForgotPasswordModal(false);
           setIsProcessing(false);
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
      const initiateResetPassword = async () => {
           setIsProcessing(true);
-          await resetPassword(username, '', false, 'millennium', libraryUrl).then((data) => {
-               setResults(data);
-               setShowResults(true);
+          await resetPassword(username, '', false, 'millennium', libraryUrl).then((response) => {
+               if(response.ok) {
+                    setResults(response.data.result);
+                    setShowResults(true);
+                    setHasError(false);
+               } else {
+                    logDebugMessage("Error initiating reset password");
+                    logDebugMessage(response);
+                    setHasError(true);
+                    const error = getErrorMessage(response.code ?? 0, response.problem);
+                    setResults(error.message);
+                    setShowResults(true);
+               }
           });
           setIsProcessing(false);
      };
@@ -761,9 +925,10 @@ const MillenniumResetPassword = (props) => {
      const resetWindow = () => {
           setShowResults(false);
           setResults('');
+          setHasError(false);
      };
 
-     if (results && showResults) {
+     if (results && showResults && !hasError) {
           return (
                <>
                     <ModalBody>
@@ -779,6 +944,23 @@ const MillenniumResetPassword = (props) => {
                                         <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary('en', 'try_again')}</ButtonText>
                                    </Button>
                               ) : null}
+                         </ButtonGroup>
+                    </ModalFooter>
+               </>
+          );
+     }
+
+     if(showResults && hasError) {
+          return (
+               <>
+                    <ModalBody>
+                         <Text color={textColor}>{stripHTML(results)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                         <ButtonGroup space="$2">
+                              <Button variant="link" onPress={closeWindow}>
+                                   <ButtonText color={textColor}>{getTermFromDictionary('en', 'cancel')}</ButtonText>
+                              </Button>
                          </ButtonGroup>
                     </ModalFooter>
                </>
@@ -849,16 +1031,5 @@ async function resetPassword(username = '', email = '', resendEmail = false, ils
           headers: getHeaders(),
           auth: createAuthTokens(),
      });
-     const results = await discovery.get('/UserAPI?method=resetPassword', params);
-     if (results.ok) {
-          if (results.data.result) {
-               return results.data.result;
-          }
-          return results.data;
-     } else {
-          return {
-               success: false,
-               message: 'Unable to connect to library',
-          };
-     }
+     return await discovery.get('/UserAPI?method=resetPassword', params);
 }
