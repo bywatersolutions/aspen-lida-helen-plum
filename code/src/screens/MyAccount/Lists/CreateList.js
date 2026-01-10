@@ -90,9 +90,7 @@ const CreateList = (props) => {
           setNestedGroup('');
           setExistingGroupId(user.lastListGroupAdded ? user.lastListGroupAdded : (listGroups?.groups[0] ? listGroups.groups[0].id : 0));
      };
-
-     console.log(theme['colors']['tertiary']['300']);
-
+     
      return (
           <Center>
                <Button onPress={toggle} size="sm" bgColor={theme['colors']['primary']['500']}>
