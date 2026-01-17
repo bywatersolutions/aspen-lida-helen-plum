@@ -676,5 +676,6 @@
   "should_delete_list_group":"Delete List Group?",
   "unassigned_lists": "Unassigned Lists",
   "list_group": "List Group",
-  "no_list_group": "No Group"
+  "no_list_group": "No Group",
+  "select_new_parent": "Select a List Group"
 }

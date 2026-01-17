@@ -71,9 +71,19 @@ export const EditListGroupParent = ({id, parentId, handleUpdate}) => {
                                         accessibilityLabel={getTermFromDictionary(language, 'move_list_group_to')}
                                         onValueChange={(itemValue) => updateSelectedGroup(itemValue)}>
                                         <SelectTrigger variant="outline" size="md">
-                                             {selectedGroup ? (
-                                                  <SelectInput color={textColor} value={selectedGroup.title} />
-                                             ) : <SelectInput color={textColor} value={parentId} />}
+                                             {_.isNull(selectedGroup) && !_.isNull(parentId) ? (
+                                                       _.map(Object.values(listGroups.groups), function (group, selectedIndex, array) {
+                                                            if (group.id === parentId) {
+                                                                 return <SelectInput value={group.title} color={textColor} />;
+                                                            }
+                                                       })
+                                                  ) :
+                                                  (_.isNull(selectedGroup) && _.isNull(parentId) ? (
+                                                       <SelectInput color={textColor} value={getTermFromDictionary(language, 'choose_existing_list_group')} />
+                                                  ) : (
+                                                       <SelectInput color={textColor} value={selectedGroup.title} />
+                                                  ))
+                                             }
                                            <SelectIcon mr="$3" as={ChevronDownIcon} color={textColor} />
                                         </SelectTrigger>
                                         <SelectPortal>
@@ -103,6 +113,7 @@ export const EditListGroupParent = ({id, parentId, handleUpdate}) => {
                                    </Button>
                                    <Button bgColor={theme['colors']['primary']['500']}
                                            isLoading={loading}
+                                           isDisabled={_.isNull(selectedGroup)}
                                            isLoadingText={getTermFromDictionary(language, 'saving', true)}
                                            onPress={() => {
                                                 setLoading(true);
