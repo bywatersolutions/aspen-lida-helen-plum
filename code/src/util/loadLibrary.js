@@ -188,26 +188,24 @@ export async function getLocalIllForm(url, id) {
 }
 
 export function formatDiscoveryVersion(payload) {
-     if(LIBRARY.version) {
-          return LIBRARY.version;
+     if (payload === undefined) {
+          // skip trying to parse the version if it is undefined
+          logWarnMessage('Could not load discovery version, the version was undefined. Something is wrong.');
+          return LIBRARY.version ?? 'Unknown';
      }
      try {
-          if (payload === undefined) {
-               logWarnMessage("Could not load discovery version, the version was undefined.");
-               LIBRARY.version = 'unknown';
-               return 'unknown';
-          }else{
-               const result = payload.split(' ');
-               if (_.isObject(result)) {
+          const result = payload.split(' ');
+          if (_.isObject(result)) {
+               if (LIBRARY.version !== result[0]) {
+                    logInfoMessage('Updated LIBRARY.version to ' + result[0]);
                     LIBRARY.version = result[0];
                     return result[0];
                }
           }
-
      } catch (e) {
-          logErrorMessage(e)
+          logErrorMessage(e);
      }
-     return payload;
+     return LIBRARY.version ?? 'Unknown'; // if we couldn't parse the version (??), return the currently stored version or unknown
 }
 
 /**
