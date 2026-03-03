@@ -24,7 +24,6 @@ env:
   GOOGLE_API_KEY_ANDROID: ${{ secrets.GOOGLE_API_KEY_ANDROID }}
   GOOGLE_API_KEY_APPLE: ${{ secrets.GOOGLE_API_KEY_APPLE }}
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-#  NODE_OPTIONS: --openssl-legacy-provider
 
 jobs:
   check-skip:
@@ -112,19 +111,20 @@ jobs:
           mkdir -p ./code
           cp ./deploy/app.config.js ./code/app.config.js
           cp ./deploy/eas.json ./code/eas.json
-          cp ./deploy/build.json ./code/build.json
+          cp ./deploy/.yarnrc.yml ./code/.yarnrc.yml
           echo "deployment configs copied to code dir"
 
       - name: 🏗  Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
-          working-directory: ./code
+
+      - name: 🔧 Enable Corepack
+        run: corepack enable
 
       - name: 📦 Get yarn cache directory path
         id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+        run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
         working-directory: ./code
 
       - name: 📦 Setup yarn cache
@@ -134,12 +134,10 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-          working-directory: ./code
 
       - name: 📦 Install dependencies
         run: |
           yarn install
-          yarn global add eas-cli@latest
         working-directory: ./code
 
       - name: 📱 Setup EAS build cache
@@ -153,7 +151,7 @@ jobs:
       - name: 🔄 Verify EAS CLI installation
         run: |
           echo "EAS CLI version:"
-          eas --version
+          npx eas-cli --version
 
       - name: 📋 Fix package.json main entry
         run: |
@@ -177,43 +175,10 @@ jobs:
           fi
         working-directory: ./code
 
-      - name: 📋 Update metro.config.js for SVG support
-        run: |
-          if [ -f ./metro.config.js ]; then
-            echo "Creating backup of metro.config.js"
-            cp ./metro.config.js ./metro.config.js.backup
-            echo "Updating metro.config.js to CommonJS format"
-            cat > ./metro.config.js << 'EOFMARKER'
-          /* eslint-disable @typescript-eslint/no-var-requires */
-          const { getDefaultConfig } = require('expo/metro-config');
-
-          const config = getDefaultConfig(__dirname);
-
-          const { transformer, resolver } = config;
-
-          config.transformer = {
-            ...transformer,
-            babelTransformerPath: require.resolve('react-native-svg-transformer/expo'),
-          };
-
-          config.resolver = {
-            ...resolver,
-            assetExts: resolver.assetExts.filter(ext => ext !== 'svg'),
-            sourceExts: [...resolver.sourceExts, 'svg'],
-          };
-
-          module.exports = config;
-          EOFMARKER
-            echo "metro.config.js updated to CommonJS format"
-          else
-            echo "metro.config.js not found"
-          fi
-        working-directory: ./code
-
       - name: 📱 Build Production AAB
         run: |
           export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
-          eas build --platform android --profile production --local --non-interactive --output=./app-prod.aab
+          npx eas-cli build --platform android --profile production --local --non-interactive --output=./app-prod.aab
         env:
           NODE_ENV: production
         working-directory: ./code
@@ -221,14 +186,14 @@ jobs:
       - name: 📱 Build iOS Production
         run: |
           export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
-          eas build --platform ios --profile production --local --non-interactive --output=./app-ios-prod.ipa
+          npx eas-cli build --platform ios --profile production --local --non-interactive --output=./app-ios-prod.ipa
         env:
           NODE_ENV: production
         working-directory: ./code
 
       - name: 🚀 Submit to Play Store
         run: |
-          eas submit -p android --path ./app-prod.aab --non-interactive
+          npx eas-cli submit -p android --path ./app-prod.aab --non-interactive
 #        env:
 #          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 #          GOOGLE_PLAY_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
@@ -236,7 +201,7 @@ jobs:
 
       - name: 🚀 Submit to App Store
         run: |
-          eas submit -p ios --path ./app-ios-prod.ipa --non-interactive
+          npx eas-cli submit -p ios --path ./app-ios-prod.ipa --non-interactive
 #        env:
 #          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 #          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
