@@ -197,7 +197,7 @@ jobs:
         with:
           name: app-build-${{ matrix.platform }}
           path: |
-            ${{ matrix.platform == 'ios' && './app-prod.ipa' || './app-prod.aab' }}
+            ${{ matrix.platform == 'ios' && './code/app-prod.ipa' || './code/app-prod.aab' }}
           retention-days: 60
 
       - name: 🚀 Submit to ${{matrix.platform }} Store
