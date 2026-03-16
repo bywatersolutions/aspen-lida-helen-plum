@@ -1,0 +1,15 @@
+{
+  "name": "Helen Plum Library",
+  "slug": "helen-plum",
+  "easId": "2f980e17-0760-4c5e-92fb-55f759d21e84",
+  "reverseDns": "org.aspendiscovery.helenplum",
+  "discoveryUrl": "https://helenplum.aspendiscovery.org/",
+  "greenhouseUrl": "https://helenplum.aspendiscovery.org/",
+  "libraryId": "2",
+  "themeId": "1",
+  "background": "#184D6E",
+  "sentryProject": "aspen-lida-helen-plum",
+  "sentryDsn": "https://7116eb4c6310366e447bc9e841bc1be7@o994439.ingest.sentry.io/4506243876651008",
+  "ascAppId": "6473308379",
+  "logLevel": "0"
+}
